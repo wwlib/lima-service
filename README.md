@@ -38,11 +38,11 @@ For an example customization of this template, see:
 
 Copy `.env-example` to `.env`
 ```
-SERVER_PORT=8000
+SERVER_PORT=5005
 USE_AUTH=true
 ```
 
-`docker run -it --rm -p 8000:8000 --env-file ./.env lima-service` 
+`docker run -it --rm -p 5005:5005 --env-file ./.env lima-service` 
 - or `npm run docker:run`
 
 
@@ -51,7 +51,7 @@ USE_AUTH=true
 Without auth:
 
 ```sh
-curl --location --request POST 'http://localhost:8000/post' \
+curl --location --request POST 'http://localhost:5005/post' \
      --header 'Content-Type: application/json' \
      --data-raw '{
        "utterance": "hello"
@@ -61,7 +61,7 @@ curl --location --request POST 'http://localhost:8000/post' \
 With auth
 
 ```sh
-curl --location --request POST 'http://localhost:8000/post' \
+curl --location --request POST 'http://localhost:5005/post' \
      --header 'Content-Type: application/json' \
      --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyMSIsImF1dGgiOnsicGVybWlzc2lvbnMiOlt7InNjb3BlcyI6WyJyZWFkIl0sInJlc291cmNlIjoiZXhhbXBsZSJ9XX0sImlhdCI6MTY1MzM2MTQ3OX0.WMbG7o7CaKOf6H7djUpZ7aylvUeYw3N8cdn1K1FrN8A' \
      --data-raw '{
@@ -76,7 +76,7 @@ curl --location --request POST 'http://localhost:8000/post' \
 
 
 ```sh
-curl --location --request POST 'http://localhost:8000/auth' \
+curl --location --request POST 'http://localhost:5005/auth' \
      --header 'Content-Type: application/json' \
      --data-raw '{
        "accountId": "user1",
@@ -90,7 +90,7 @@ curl --location --request POST 'http://localhost:8000/auth' \
 
 ### http - dashboard
 
-http://localhost:8000/
+http://localhost:5005/
 
 
 ### socket client

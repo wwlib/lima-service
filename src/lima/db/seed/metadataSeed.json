@@ -1,0 +1,22 @@
+[
+  {
+    "id": "tbd",
+    "appName": "luis/robo-dispatch",
+    "appId": "tbd",
+    "appVersion": "1.0",
+    "serviceType": "luis",
+    "intents": [],
+    "categories": [],
+    "isDefault": true
+  },
+  {
+    "id": "tbd",
+    "appName": "luis/robo-chitchat",
+    "appId": "tbd",
+    "appVersion": "1.0",
+    "serviceType": "luis",
+    "intents": [],
+    "categories": [],
+    "isDefault": true
+  }
+]

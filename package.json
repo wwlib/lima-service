@@ -27,7 +27,7 @@
     "test:ci": "echo TODO",
     "clean": "rm -rf dist node_modules",
     "docker:build": "docker build -t lima-service .",
-    "docker:run": "docker run -it --rm -p 8000:8000 --env-file ./.env lima-service"
+    "docker:run": "docker run -it --rm -p 5005:5005 --env-file ./.env lima-service"
   },
   "dependencies": {
     "cookie-parser": "^1.4.6",
@@ -38,15 +38,20 @@
     "handlebars-loader": "^1.7.2",
     "http-status-codes": "^2.1.4",
     "jsonwebtoken": "^8.5.1",
+    "mongodb": "^3.6.2",
+    "mongodb-memory-server": "^6.9.2",
     "npm-watch": "^0.11.0",
     "pino-pretty": "^7.1.0",
     "robokit-command-system": "https://github.com/wwlib/robokit-command-system#bugfix/andrew/clock-tweaks",
     "socket.io": "^4.5.2",
+    "uuidv4": "^6.1.1",
     "ws": "^8.6.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
     "@types/jest": "^27.0.1",
+    "@types/jsonwebtoken": "^8.5.9",
+    "@types/mongodb": "^3.5.32",
     "@types/node": "^16.10.1",
     "@types/pino": "^6.3.11",
     "@types/uuid": "^8.3.1",

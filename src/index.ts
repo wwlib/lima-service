@@ -6,6 +6,7 @@ import * as handlers from '@handlers'
 import { ExpressRouterWrapper } from './util/ExpressRouterWrapper'
 // import { WSSRoutes, setupWebSocketServer } from './util/WebSocketServerWrapper'
 import { setupSocketIoDeviceServer } from './SocketIoDeviceServer'
+import { initMongoClient } from "./lima/db/mongoClient";
 
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
@@ -13,6 +14,10 @@ const cookieParser = require("cookie-parser");
 dotenv.config()
 
 const main = async () => {
+
+  await initMongoClient();
+  console.log(`Mongodb client initialized.`)
+
   const app = express()
 
   // Set expected Content-Types
@@ -23,7 +28,7 @@ const main = async () => {
 
   // https://www.section.io/engineering-education/how-to-use-cors-in-nodejs-with-express/
   app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: process.env.CORS_ORIGIN, // 'http://localhost:3000',
     credentials: true,
   }));
 
@@ -56,12 +61,15 @@ const main = async () => {
 
   // expressRouterWrapper.addGetHandler('/time', handlers.TimeHandler, ['example:read'])
 
+  expressRouterWrapper.addPostHandler('/users', handlers.LimaHandlers.getInstance().findUsers, ['example:read'])
+  expressRouterWrapper.addPostHandler('/metadata', handlers.LimaHandlers.getInstance().findMetadata, ['example:read'])
+
   if (expressRouterWrapper) {
     const routerPath = expressRouterWrapper.path !== '' ? `/${expressRouterWrapper.path}` : ''
     app.use(`${routerPath}`, expressRouterWrapper.getRouter())
   }
 
-  const port = parseInt(<string>process.env.SERVER_PORT) || 8000
+  const port = parseInt(<string>process.env.SERVER_PORT) || 5005
   const httpServer: Server = http.createServer(app)
 
   // socket routes
