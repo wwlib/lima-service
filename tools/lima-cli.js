@@ -44,9 +44,9 @@ async function getAuthData() {
     }
 }
 
-async function callLima(path, args, authData) {
+async function callLima(path, body, authData) {
     return new Promise((resolve, reject) => {
-        axios.post(`${process.env.URL}/${path}`, {},
+        axios.post(`${process.env.URL}/${path}`, body,
             {
                 headers: {
                     'Content-Type': 'application/json',
@@ -74,6 +74,24 @@ async function handleInput(input, authData) {
             break
         case 'users':
             result = await callLima('users', {}, authData)
+            console.log(result)
+            break
+        case 'transaction':
+            result = await callLima('transaction', {
+                clientId: 'client-id',
+                sessionId: 'session-id',
+                input: 'i would like to play a game',
+                inputData: 'input-data',
+                type: 'user',
+                serviceType: 'luis',
+                appName: 'luis/robo-dispatch',
+                userId: 'user-id',
+                environment: 'environment',
+            }, authData)
+            console.log(result)
+            break;
+        case 'transactions':
+            result = await callLima('transactions', { type: 'user'}, authData)
             console.log(result)
             break
     }

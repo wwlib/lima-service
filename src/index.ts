@@ -7,11 +7,14 @@ import { ExpressRouterWrapper } from './util/ExpressRouterWrapper'
 // import { WSSRoutes, setupWebSocketServer } from './util/WebSocketServerWrapper'
 import { setupSocketIoDeviceServer } from './SocketIoDeviceServer'
 import { initMongoClient } from "./lima/db/mongoClient";
+import { getConfig, validateConfig } from './lima/config'
 
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
 
 dotenv.config()
+// validateConfig() // make sure all required values are set
+console.log(getConfig())
 
 const main = async () => {
 
@@ -63,6 +66,8 @@ const main = async () => {
 
   expressRouterWrapper.addPostHandler('/users', handlers.LimaHandlers.getInstance().findUsers, ['example:read'])
   expressRouterWrapper.addPostHandler('/metadata', handlers.LimaHandlers.getInstance().findMetadata, ['example:read'])
+  expressRouterWrapper.addPostHandler('/transaction', handlers.LimaHandlers.getInstance().processTransaction, ['example:read'])
+  expressRouterWrapper.addPostHandler('/transactions', handlers.LimaHandlers.getInstance().searchTransactionsWithCriteria, ['example:read'])
 
   if (expressRouterWrapper) {
     const routerPath = expressRouterWrapper.path !== '' ? `/${expressRouterWrapper.path}` : ''
