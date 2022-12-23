@@ -74,7 +74,7 @@ const main = async () => {
     app.use(`${routerPath}`, expressRouterWrapper.getRouter())
   }
 
-  const port = parseInt(<string>process.env.SERVER_PORT) || 5005
+  const port = parseInt(<string>process.env.SERVER_PORT) || 8084
   const httpServer: Server = http.createServer(app)
 
   // socket routes

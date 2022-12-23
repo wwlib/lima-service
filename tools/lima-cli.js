@@ -6,10 +6,10 @@ dotenv.config()
 
 /*
 
-curl --location --request POST 'http://localhost:5005/metadata'
+curl --location --request POST 'http://localhost:8084/metadata'
 
 
-curl --location --request POST 'http://localhost:5005/auth' \
+curl --location --request POST 'http://localhost:8084/auth' \
      --header 'Content-Type: application/json' \
      --data-raw '{
        "accountId": "device1",

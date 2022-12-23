@@ -44,7 +44,9 @@ export class LimaHandlers {
     if (req.auth && req.auth.accessTokenPayload) {
       accountId = req.auth.accessTokenPayload.accountId
     }
-    const response: any = TransactionProcessor.Instance().process(req.body, { auth: { userId: accountId, roles: []}, token: '' })
+    console.log('LimaHandlers: processTransaction: req.body:', req.body)
+    // TODO: add error handling
+    const response: any = await TransactionProcessor.Instance().process(req.body, { auth: { userId: accountId, roles: []}, token: '' })
     const result = { status: 'OK', accountId, response }
     res.status(StatusCodes.OK).json(result)
   }
