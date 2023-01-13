@@ -1,5 +1,12 @@
 # lima-service
 
+![lima-logo](./docs/media/lima-logo-full.png)
+
+Language Intelligence Manager/Analyzer rovides a common interface to NLP/NLU cognitive services (i.e. Azure Luis & CLU). Enables easy transaction analysis, annotation and review workflow.
+
+
+### microservice architecture
+
 Based on wwlib/microservice-template#versions/socket-io: A template for creating node microservices with:
 - express route handling
 - get/post REST api routes
