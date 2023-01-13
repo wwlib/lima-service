@@ -2,7 +2,11 @@
 
 ![lima-logo](./docs/media/lima-logo-full.png)
 
-Language Intelligence Manager/Analyzer provides a common interface to NLP/NLU cognitive services (i.e. Azure Luis & CLU) and enables easy transaction analysis, annotation and review.
+Language Intelligence Manager/Analyzer provides a common interface to language-related cognitive services (i.e. Azure Luis & CLU, GPT, ...) and enables easy transaction analysis, annotation and review. It is especially useful during the design/validation phase of conversationa ai product development. LIMA is a component of the [robokit-cognitive-hub](https://github.com/wwlib/robokit-cognitive-hub) but can also be used as a standalone service.
+
+### version
+
+v0.0.1 (alpha)
 
 
 ### microservice architecture
