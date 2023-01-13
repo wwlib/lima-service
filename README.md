@@ -2,7 +2,7 @@
 
 ![lima-logo](./docs/media/lima-logo-full.png)
 
-Language Intelligence Manager/Analyzer rovides a common interface to NLP/NLU cognitive services (i.e. Azure Luis & CLU). Enables easy transaction analysis, annotation and review workflow.
+Language Intelligence Manager/Analyzer provides a common interface to NLP/NLU cognitive services (i.e. Azure Luis & CLU) and enables easy transaction analysis, annotation and review.
 
 
 ### microservice architecture
