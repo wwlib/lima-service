@@ -1,4 +1,4 @@
-import { Transaction } from "./schema";
+import { Transaction } from "@types";
 import { log } from "./logger";
 
 export default class TransactionLogger {

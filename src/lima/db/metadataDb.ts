@@ -1,5 +1,5 @@
 import { Collection } from "mongodb";
-import { Metadata } from "../schema";
+import { Metadata } from "@types";
 import { db } from "./mongoClient";
 import { byMongoId, mongoId, skipId, unwrapId, WithMongoId, WithoutId } from "./utils";
 

@@ -1,5 +1,4 @@
-import { getConfig } from "../config";
-import { Environment, QuestionType, ServiceType, Session, Transaction } from "../schema";
+import { Environment, AccountType, ServiceType, QueryBody, Session, Transaction, AuthRequest } from "@types";
 import { LIMA_VERSION } from "../versions";
 import { newTransactionWithDataAndSession } from "../db/transactionDb";
 
@@ -7,14 +6,16 @@ const axios = require('axios');
 
 export class LuisClient {
   async processLuisTransaction(
-    body: any,
+    body: QueryBody,
     appName: string,
     appId: string,
     appVersion: string,
     session: Session,
+    serviceConfig: any,
+    req: AuthRequest,
   ): Promise<Transaction> {
     const startTime: number = new Date().getTime();
-    const luisResponse = await this.requestLuis(appId, body.input);
+    const luisResponse = await this.requestLuis(appId, body.input!, serviceConfig);
 
     const elapsedTime: number = new Date().getTime() - startTime;
 
@@ -23,15 +24,16 @@ export class LuisClient {
       delete luisResponse.entities["$instance"];
     }
 
-    const meaningful = isMeaningfulResponse(luisResponse);
+    const meaningful = isMeaningfulResponse(luisResponse, serviceConfig);
 
     const data = {
-      type: body.type || QuestionType.User,
+      type: body.type || AccountType.User,
       clientId: body.clientId,
+      limaVersion: LIMA_VERSION,
       serviceType: ServiceType.Luis,
       appName: appName,
       appVersion: `${LIMA_VERSION}#${appVersion}`,
-      userId: body.userId,
+      accountId: body.accountId,
       sessionId: session.id,
       environment: body.environment || Environment.Production,
       input: body.input,
@@ -52,16 +54,17 @@ export class LuisClient {
   async requestLuis(
     appId: string,
     query: string,
+    serviceConfig: any,
   ): Promise<{ intent: string; confidence: number; entities: Record<string, string> }> {
     const url =
-      `${getConfig().LUIS_endpoint}luis/prediction/v3.0/apps/${appId}/slots/production/predict` +
+      `${serviceConfig?.LUIS_ENDPOINT}luis/prediction/v3.0/apps/${appId}/slots/production/predict` +
       "?verbose=true&show-all-intents=true&query=" +
       encodeURIComponent(query);
     console.log(`requestLuis:`, url)
     const response = await axios.get(url,
       {
         headers: {
-          "Ocp-Apim-Subscription-Key": getConfig().LUIS_subscriptionKey,
+          "Ocp-Apim-Subscription-Key": serviceConfig?.LUIS_SUBSCRIPTION_KEY,
         }
       })
     const responseData = response.data
@@ -96,9 +99,9 @@ function getEntitiesFromResponse(responseData: any) {
   return result;
 }
 
-function isMeaningfulResponse(responseData: any) {
+function isMeaningfulResponse(responseData: any, serviceConfig: any) {
   if (responseData.intent == "None") return false;
 
-  const confidenceThreshold = getConfig().LUIS_threshold ? +getConfig().LUIS_threshold : 0.1;
+  const confidenceThreshold = serviceConfig?.confidenceMinThreshold || 0.1;
   return responseData.confidence > confidenceThreshold;
 }

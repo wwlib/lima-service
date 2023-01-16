@@ -2,7 +2,6 @@ import { Request, Response, Handler } from 'express'
 import { AuthRequest } from '@types'
 import { StatusCodes } from 'http-status-codes'
 import { deleteMetadata, findMetadata, findMetadataByAppName, insertMetadata, updateMetadata } from "src/lima/db/metadataDb";
-import { findUsers } from 'src/lima/db/usersDb';
 import { searchTransactionsWithCriteria } from 'src/lima/db/transactionDb';
 import TransactionProcessor from 'src/lima/TransactionProcessor';
 
@@ -24,8 +23,8 @@ export class LimaHandlers {
     if (req.auth && req.auth.accessTokenPayload) {
       accountId = req.auth.accessTokenPayload.accountId
     }
-    let metadata: any = await findUsers();
-    const result = { status: 'OK', accountId, metadata }
+    let users: any = { users: [] }; // TODO: implement this. get users from TBD auth service.
+    const result = { status: 'OK', accountId, users }
     res.status(StatusCodes.OK).json(result)
   }
 
@@ -46,7 +45,7 @@ export class LimaHandlers {
     }
     console.log('LimaHandlers: processTransaction: req.body:', req.body)
     // TODO: add error handling
-    const response: any = await TransactionProcessor.Instance().process(req.body, { auth: { userId: accountId, roles: []}, token: '' })
+    const response: any = await TransactionProcessor.Instance().process(req.body, req)
     const result = { status: 'OK', accountId, response }
     res.status(StatusCodes.OK).json(result)
   }

@@ -1,5 +1,5 @@
 import { db } from "./mongoClient";
-import { Session, Transaction, TransactionCriteria } from "../schema";
+import { Session, Transaction, TransactionCriteria } from "@types";
 import { byMongoId, mongoId, unwrapId, WithMongoId } from "./utils";
 
 export async function newTransactionWithDataAndSession(

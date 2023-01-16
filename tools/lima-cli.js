@@ -34,7 +34,7 @@ async function getAuthData() {
                     resolve(response.data)
                 })
                 .catch(function (error) {
-                    console.log(error)
+                    console.log(error?.message)
                     reject()
                 })
 
@@ -46,6 +46,7 @@ async function getAuthData() {
 
 async function callLima(path, body, authData) {
     return new Promise((resolve, reject) => {
+        const url = `${process.env.URL}/${path}`
         axios.post(`${process.env.URL}/${path}`, body,
             {
                 headers: {
@@ -58,7 +59,10 @@ async function callLima(path, body, authData) {
                 resolve(response.data)
             })
             .catch(function (error) {
-                console.log(error)
+                console.log(url)
+                console.log(body)
+                console.log(authData)
+                console.log(error?.message)
                 reject()
             })
     })
@@ -67,7 +71,9 @@ async function callLima(path, body, authData) {
 
 async function handleInput(input, authData) {
     let result = undefined
-    switch (input) {
+    const args = input.split(':')
+    console.log(args)
+    switch (args[0]) {
         case 'metadata':
             result = await callLima('metadata', {}, authData)
             console.log(result)
@@ -76,15 +82,29 @@ async function handleInput(input, authData) {
             result = await callLima('users', {}, authData)
             console.log(result)
             break
-        case 'transaction':
+        case 'luis':
             result = await callLima('transaction', {
                 clientId: 'client-id',
                 sessionId: 'session-id',
-                input: 'i would like to play a game',
+                input: args[1] || 'i would like to play a game',
                 inputData: 'input-data',
                 type: 'user',
                 serviceType: 'luis',
                 appName: 'luis/robo-dispatch',
+                userId: 'user-id',
+                environment: 'environment',
+            }, authData)
+            console.log(result)
+            break;
+        case 'gpt3':
+            result = await callLima('transaction', {
+                clientId: 'client-id',
+                sessionId: 'session-id',
+                input: args[1] + '->' || 'do you like ice cream->',
+                inputData: 'input-data',
+                type: 'user',
+                serviceType: 'gpt3text',
+                appName: 'gpt3text/jibo-chitchat-jan-2023',
                 userId: 'user-id',
                 environment: 'environment',
             }, authData)

@@ -1,5 +1,5 @@
 import { db } from "./mongoClient";
-import { Annotation, AnnotationCriteria, Transaction } from "../schema";
+import { Annotation, AnnotationCriteria, Transaction } from "@types";
 import { ensureArray, mongoId, unwrapId, WithMongoId } from "./utils";
 
 export async function newAnnotationWithDataAndTransaction(

@@ -3,10 +3,8 @@ import {
   newAnnotationWithDataAndTransaction,
   updateAnnotationWithDataAndAnotationId,
 } from "./db/annotationDb";
-import { Annotation, QuestionType } from "./schema";
+import { AuthRequest, Annotation, AccountType, CreateAnnotation, UpdateAnnotation } from "@types";
 import { getTransactionWithId } from "./db/transactionDb";
-import { CreateAnnotation, UpdateAnnotation } from "./limaService";
-import { AuthContext, decodeAuthToken, TokenType } from "./auth";
 
 export default class AnnotationProcessor {
   private static _instance: AnnotationProcessor;
@@ -17,7 +15,7 @@ export default class AnnotationProcessor {
     return this._instance || (this._instance = new this());
   }
 
-  async process(body: CreateAnnotation | UpdateAnnotation, ctx: AuthContext): Promise<Annotation> {
+  async process(body: CreateAnnotation | UpdateAnnotation, req: AuthRequest): Promise<Annotation> {
     if ("id" in body) {
       // presence of annotation id indicates an UPDATE rather than a CREATE
       const data: Annotation = {
@@ -40,14 +38,14 @@ export default class AnnotationProcessor {
     } else {
       const transaction = await getTransactionWithId(body.transactionId);
 
-      const auth = decodeAuthToken(ctx.token, TokenType.Access);
+      const auth = req.auth
 
       if (transaction) {
         const data = {
-          type: body.type || QuestionType.User,
+          type: body.type || AccountType.User,
           clientId: body.clientId,
           appName: transaction.appName,
-          userId: auth.userId || body.userId,
+          accountId: auth?.accessTokenPayload.accountId || body.accountId,
           sessionId: transaction.sessionId,
           transactionId: transaction.id,
           status: body.status,

@@ -1,23 +1,21 @@
-import { getConfig } from "./config";
-import { Environment, Metadata, QuestionType, Role, ServiceType, Session, Transaction } from "./schema";
+import { AuthRequest, Environment, Metadata, AccountType, ServiceType, QueryBody, Session, Transaction } from "@types";
 import { newTransactionWithDataAndSession } from "./db/transactionDb";
 import { LIMA_VERSION } from "./versions";
 import TransactionLogger from "./TransactionLogger";
-import { Question } from "./limaService";
 import { getNewSession, getSessionWithId } from "./db/sessionDb";
 import { log } from "./logger";
-import { AuthContext } from "./auth";
 import MetadataRequestProcessor from "./MetadataRequestProcessor";
 import { LuisClient } from "./luis/LuisClient";
+import { GPT3TextClient } from "./openai/Gpt3TextClient";
 // import { getGrammarParserResult } from "../grammarParser/GrammarParserClient";
 
 const axios = require('axios')
 
 export default class TransactionProcessor {
   private static _instance: TransactionProcessor;
-  private readonly _config = getConfig();
 
-  luisClient = new LuisClient();
+  public luisClient = new LuisClient();
+  public gpt3TextClient = new GPT3TextClient();
 
   static Instance() {
     return this._instance || (this._instance = new this());
@@ -27,7 +25,7 @@ export default class TransactionProcessor {
     const question: string = options.question;
     const questionData: any = options.questionData;
     const qnaMakerAppId = options.appId;
-    const endpoint = this._config.QnAMakerEndpoint;
+    const endpoint = options.serviceConfig?.QNAMAKER_ENDPOINT;
     let strictFilters: any;
     if (questionData && questionData.topic) {
       strictFilters = [
@@ -45,14 +43,14 @@ export default class TransactionProcessor {
       isTest: isTest,
       scoreThreshold: questionData ? questionData.scoreThreshold : undefined,
       strictFilters: strictFilters,
-      userId: questionData ? questionData.userId : undefined,
+      accountId: questionData ? questionData.accountId : undefined,
     };
     const url = `${endpoint}qnamaker/knowledgebases/${qnaMakerAppId}/generateAnswer`
     const response = await axios.post(url, fetchData,
       {
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `EndpointKey ${this._config.QnAMakerEndpointKey}`,
+          Authorization: `EndpointKey ${options.serviceConfig?.QNAMAKER_ENDPOINT_KEY}`,
         }
 
       })
@@ -70,7 +68,8 @@ export default class TransactionProcessor {
     appId: string,
     appVersion: string,
     session: Session,
-    ctx: AuthContext,
+    serviceConfig: any,
+    req: AuthRequest,
   ): Promise<Transaction> {
     try {
       const startTime: number = new Date().getTime();
@@ -79,11 +78,12 @@ export default class TransactionProcessor {
         question: body.input,
         questionData: body.inputData,
         appId: appId,
+        serviceConfig
       });
       const elapsedTime: number = new Date().getTime() - startTime;
-      let intentId = "";
-      let intentDetail = "";
-      let category = "";
+      let intentId = '';
+      let intentDetail = '';
+      let category = '';
       let confidence = 0;
 
       if (qnaResponse && qnaResponse.answers && qnaResponse.answers[0]) {
@@ -120,28 +120,42 @@ export default class TransactionProcessor {
       }
 
       // filter data not acessible for regular users
-      if (!ctx?.auth?.roles?.some((r) => r == Role.Admin || r == Role.Reviewer)) {
-        const replacer = (key: string, value: any) => {
-          if (key === "questions") {
-            return undefined;
-          } else {
-            return value;
-          }
-        };
+      // auth: {
+      //   permissions: [
+      //       {
+      //           scopes: [
+      //               "read",
+      //               "admin"
+      //           ],
+      //           resource: "example"
+      //       }
+      //   ]
+      // }
 
-        if (qnaResponse) {
-          let qnaResponseString = JSON.stringify(qnaResponse, replacer);
-          qnaResponse = JSON.parse(qnaResponseString);
-        }
-      }
+      // TODO: check permissions->scopes to see if response data should be masked
+      // if (false) { // TODO: check permissions->scopes to see if response data should be masked
+      //   const replacer = (key: string, value: any) => {
+      //     if (key === "TBD") {
+      //       return undefined;
+      //     } else {
+      //       return value;
+      //     }
+      //   };
+
+      //   if (qnaResponse) {
+      //     let qnaResponseString = JSON.stringify(qnaResponse, replacer);
+      //     qnaResponse = JSON.parse(qnaResponseString);
+      //   }
+      // }
 
       const data = {
-        type: body.type || QuestionType.User,
+        type: body.type || AccountType.User,
         serviceType: ServiceType.QnaMaker,
         clientId: body.clientId,
+        limaVersion: LIMA_VERSION,
         appName: appName,
         appVersion: versionInfo,
-        userId: ctx.auth.userId || body.userId,
+        accountId: req?.auth?.accountId || body.accountId,
         sessionId: session.id,
         environment: body.environment || Environment.Production,
         input: body.input,
@@ -165,8 +179,8 @@ export default class TransactionProcessor {
     const question: string = options.question;
     const questionData: any = options.questionData;
     const mintMakerAppId = options.appId;
-    const endpoint = this._config.MintEndpoint;
-    const token = this._config.MintBasicAuthToken;
+    const endpoint = options.serviceConfig?.MINT_ENDPOINT;
+    const token = options.serviceConfig?.MINT_BASIC_AUTH_TOKEN;
 
     const url = `${endpoint}`
 
@@ -189,7 +203,8 @@ export default class TransactionProcessor {
     appId: string,
     appVersion: string,
     session: Session,
-    ctx: AuthContext,
+    serviceConfig: any,
+    req: AuthRequest,
   ): Promise<Transaction> {
     const startTime: number = new Date().getTime();
     const mintResponse = await this.getMintAnswer({
@@ -197,16 +212,17 @@ export default class TransactionProcessor {
       question: body.input,
       questionData: body.inputData,
       appId: appId,
+      serviceConfig
     });
     const elapsedTime: number = new Date().getTime() - startTime;
-    let intentId = "";
-    let intentDetail = "";
-    let category = "";
+    let intentId = '';
+    let intentDetail = '';
+    let category = '';
     let confidence = 0;
 
     if (mintResponse && mintResponse[0] && mintResponse[0].nodes && mintResponse[0].nodes[0]) {
       const answerData = mintResponse[0].nodes[0];
-      intentId = answerData.outputs ? answerData.outputs[0].value : "";
+      intentId = answerData.outputs ? answerData.outputs[0].value : '';
       confidence = answerData.outputs ? answerData.outputs[0].confidence : 0;
     }
 
@@ -217,12 +233,13 @@ export default class TransactionProcessor {
     }
 
     const data = {
-      type: body.type || QuestionType.User,
+      type: body.type || AccountType.User,
       serviceType: ServiceType.Mint,
       clientId: body.clientId,
+      limaVersion: LIMA_VERSION,
       appName: appName,
       appVersion: versionInfo,
-      userId: body.userId,
+      accountId: body.accountId,
       sessionId: session.id,
       environment: body.environment || Environment.Production,
       input: body.input,
@@ -239,7 +256,7 @@ export default class TransactionProcessor {
   }
 
   // async processGrammarTransaction(
-  //   body: Question,
+  //   body: QueryBody,
   //   appName: string,
   //   appId: string,
   //   appVersion: string,
@@ -261,7 +278,7 @@ export default class TransactionProcessor {
   //     clientId: body.clientId,
   //     appName: appName,
   //     appVersion: LIMA_VERSION,
-  //     userId: body.userId,
+  //     accountId: body.accountId,
   //     sessionId: session.id,
   //     environment: body.environment || Environment.Production,
   //     input: body.input,
@@ -278,9 +295,7 @@ export default class TransactionProcessor {
   //   return await newTransactionWithDataAndSession(data, session);
   // }
 
-  async process(body: Question, ctx: AuthContext): Promise<Transaction> {
-    if (!body.input) throw new Error("invalid question.");
-
+  async process(body: QueryBody, req: AuthRequest): Promise<Transaction> {
     let session: Session | null = null;
 
     if (body.sessionId) {
@@ -290,32 +305,31 @@ export default class TransactionProcessor {
       session = await getNewSession();
     }
 
-    if (!body.appName) throw new Error(`invalid appName: ${body.appName}`);
-
     let result: Transaction | undefined = undefined;
 
-    let appData: Metadata | undefined = await MetadataRequestProcessor.Instance().getCachedMetadataWithAppName(body.appName);
+    const appData: Metadata | undefined = await MetadataRequestProcessor.Instance().getCachedMetadataWithAppName(body.appName!);
 
     if (!appData) {
-      log(`Can't find metadata for appname ${body.appName}`);
+      log(`Cannot find metadata for appname: ${body.appName}`);
 
       return {
-        id: "",
-        type: body.type || QuestionType.User,
+        id: '',
+        type: body.type || AccountType.User,
         clientId: body.clientId,
-        serviceType: ServiceType.Luis,
+        limaVersion: LIMA_VERSION,
+        serviceType: ServiceType.NA,
         appName: body.appName,
-        appVersion: "",
-        userId: body.userId,
-        sessionId: session.id,
+        appVersion: '',
+        accountId: body.accountId,
+        sessionId: session?.id!,
         environment: body.environment || Environment.Production,
         input: body.input,
         inputData: body.inputData,
-        intentId: "",
-        intentDetail: "",
+        intentId: '',
+        intentDetail: '',
         confidence: 1.0,
-        category: "",
-        response: "",
+        category: '',
+        response: { error: `Cannot find metadata for appname: ${body.appName}`},
         responseTime: 0,
         entities: {},
       };
@@ -329,27 +343,41 @@ export default class TransactionProcessor {
       case ServiceType.QnaMaker:
         result = await this.processQnaMakerTransaction(
           body,
-          body.appName,
+          body.appName!,
           appData.appId,
           appData.appVersion,
-          session,
-          ctx,
+          session!,
+          appData.serviceConfig,
+          req,
         );
         break;
       case ServiceType.Luis:
         result = await this.luisClient.processLuisTransaction(
           body,
-          body.appName,
+          body.appName!,
           appData.appId,
           appData.appVersion,
-          session,
+          session!,
+          appData.serviceConfig,
+          req,
         );
         break;
       // case ServiceType.GrammarParser:
       //   result = await this.processGrammarTransaction(body, body.appName, appData.appId, appData.appVersion, session);
       //   break;
       case ServiceType.Mint:
-        result = await this.processMintTransaction(body, body.appName, appData.appId, appData.appVersion, session, ctx);
+        result = await this.processMintTransaction(body, body.appName!, appData.appId, appData.appVersion, session!, appData.serviceConfig, req);
+        break;
+      case ServiceType.GPT3Text:
+        result = await this.gpt3TextClient.processGPT3TextTransaction(
+          body,
+          body.appName!,
+          appData.appId,
+          appData.appVersion,
+          session!,
+          appData.serviceConfig,
+          req,
+        );
         break;
     }
 

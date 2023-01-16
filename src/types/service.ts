@@ -8,7 +8,7 @@ export function getRuleFromAppName(appName: string): string {
   return appName.substring(appName.lastIndexOf(":") + 1);
 }
 
-export enum QuestionType {
+export enum AccountType {
   User = "user",
   QA = "qa",
   Auto = "auto",
@@ -38,10 +38,12 @@ export enum Environment {
 }
 
 export enum ServiceType {
+  NA = 'na',
   QnaMaker = "qnamaker",
   Luis = "luis",
   GrammarParser = "grammarparser",
   Mint = "mint",
+  GPT3Text = "gpt3text",
 }
 
 export const serviceTypeOptions = {
@@ -49,14 +51,15 @@ export const serviceTypeOptions = {
   [ServiceType.Luis]: "LUIS",
   [ServiceType.GrammarParser]: "Grammar Parser",
   [ServiceType.Mint]: "MINT",
+  [ServiceType.GPT3Text]: "GPT3 Text",
 };
 
 export type Annotation = {
   id?: string;
-  type?: QuestionType;
+  type?: AccountType;
   clientId?: string; // user-app | test-system
   appName?: string; // 'sharecare-hepc',
-  userId?: string; // 'anonymous' | 'auto' | user-id
+  accountId?: string; // 'anonymous' | 'auto' | user-id
   sessionId?: string;
   transactionId?: string;
   status?: AnnotationStatus;
@@ -76,12 +79,14 @@ export type Annotation = {
 
 export type Transaction = {
   id: string;
-  type: QuestionType;
+  type: AccountType;
   clientId?: string;
+  limaVersion: string; // llima service version
   serviceType?: string; // qnamaker | luis | robustparser
+  serviceVersion?: string; // cognitive service version
   appName?: string; // null means unspecified
   appVersion?: string; // null means unspecified
-  userId?: string; // null means anonymous
+  accountId?: string; // null means anonymous
   sessionId: string;
   environment: Environment;
   datestamp?: number;
@@ -92,6 +97,7 @@ export type Transaction = {
   intentDetail?: string;
   category?: string;
   response: any;
+  responseSummary?: string;
   transactionLogUri?: string;
   entities?: Record<string, string | string[]>;
   responseTime?: number;
@@ -119,21 +125,6 @@ export type AnnotationCriteria = Omit<
   | "status"
 > & { annotationId: string; status: AnnotationStatus | AnnotationStatus[]; jiraId: string };
 
-export interface User {
-  id: string;
-  email: string;
-  passwordHash: string;
-  roles: Role[];
-
-  token?: string;
-}
-
-export enum Role {
-  Admin = "Admin",
-  Reviewer = "Reviewer",
-  Consumer = "Consumer",
-}
-
 export interface Intent {
   intentId: string;
   intentDetail: string;
@@ -147,32 +138,49 @@ export interface Metadata {
   appId: string;
   appVersion: string;
   serviceType: ServiceType;
+  serviceConfig: any;
   intents: Intent[];
   categories: string[];
   isDefault: boolean;
+  tags?: string;
 }
 
-export function getMetadataWithAppName(metadataArray: Metadata[], appName: string): Metadata | undefined {
-  let result: Metadata | undefined = undefined;
-  if (metadataArray) {
-    metadataArray.forEach((metadataData: Metadata) => {
-      if (metadataData.appName == appName) {
-        result = metadataData;
-      }
-    });
-  }
-  return result;
-}
+export type QueryBody = {
+  clientId: string;
+  sessionId?: string;
+  input?: string;
+  inputData?: any;
+  type?: AccountType;
+  serviceType?: ServiceType;
+  appName?: string;
+  accountId?: string;
+  environment?: Environment;
+};
 
-export function getAppNames(metadataArray: Metadata[]): string[] {
-  const result: string[] = [];
-  if (metadataArray) {
-    metadataArray.forEach((metadataData: Metadata) => {
-      if (metadataData.appName) {
-        result.push(metadataData.appName);
-      }
-    });
-    result.sort();
-  }
-  return result;
-}
+export type CreateAnnotation = AnnotationParams & {
+  transactionId: string;
+  question: string;
+  type: AccountType;
+  clientId?: string;
+  appName?: string;
+  accountId?: string;
+};
+
+export type UpdateAnnotation = AnnotationParams & {
+  id: string;
+  revision: number;
+};
+
+// common fields for creating & update annotations
+type AnnotationParams = {
+  status: AnnotationStatus;
+  issueType: IssueType;
+  priority: string;
+  assignedTo?: string;
+  intentId: string;
+  category?: string;
+  deidentifiedInput?: string;
+  notes?: string;
+  jiraIds?: string[];
+  appSpecificData?: any;
+};

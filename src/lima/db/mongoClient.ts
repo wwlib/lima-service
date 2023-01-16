@@ -1,9 +1,6 @@
-import { Metadata, Role } from "../schema";
-import { hashPassword } from "../auth";
-import { getConfig } from "../config";
+import { Metadata } from "@types";
 import { Db, MongoClient } from "mongodb";
 import { log } from "../logger";
-import { insertUser } from "./usersDb";
 import { insertMetadata } from "./metadataDb";
 import { inTests } from "./utils";
 
@@ -12,7 +9,7 @@ let mongoClient: any;
 let db: Db;
 
 export async function initMongoClient() {
-  let url = getConfig().ETCO_server_dbEndpoint;
+  let url = process.env.MONGODB_URL;
 
   let createSeedData = false;
 
@@ -39,30 +36,13 @@ export async function initMongoClient() {
   }
 
   try {
-    mongoClient = new MongoClient(url, { useUnifiedTopology: true, useNewUrlParser: true })
+    mongoClient = new MongoClient(url!, { useUnifiedTopology: true, useNewUrlParser: true })
     await mongoClient.connect();
 
     const dbName = "lima";
     db = mongoClient.db(dbName);
 
     if (createSeedData) {
-      // users
-      await insertUser({
-        email: "admin",
-        roles: [Role.Admin, Role.Reviewer],
-        passwordHash: hashPassword("admin"),
-      });
-      await insertUser({
-        email: "reviewer",
-        roles: [Role.Reviewer],
-        passwordHash: hashPassword("reviewer"),
-      });
-      await insertUser({
-        email: "consumer",
-        roles: [Role.Consumer],
-        passwordHash: hashPassword("consumer"),
-      });
-
       // metadata
       const metaData = await import("./seed/metadataSeed.json");
 

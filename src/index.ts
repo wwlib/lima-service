@@ -7,14 +7,11 @@ import { ExpressRouterWrapper } from './util/ExpressRouterWrapper'
 // import { WSSRoutes, setupWebSocketServer } from './util/WebSocketServerWrapper'
 import { setupSocketIoDeviceServer } from './SocketIoDeviceServer'
 import { initMongoClient } from "./lima/db/mongoClient";
-import { getConfig, validateConfig } from './lima/config'
 
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
 
 dotenv.config()
-// validateConfig() // make sure all required values are set
-console.log(getConfig())
 
 const main = async () => {
 

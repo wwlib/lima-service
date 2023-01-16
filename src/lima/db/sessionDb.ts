@@ -1,5 +1,5 @@
 import { db } from "./mongoClient";
-import { Session } from "../schema";
+import { Session } from "@types";
 import { byMongoId, mongoId, unwrapId, WithMongoId } from "./utils";
 
 export async function getNewSession(): Promise<Session> {

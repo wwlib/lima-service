@@ -1,5 +1,4 @@
-import { Role, Metadata } from "./schema";
-import { assertRole, AuthContext } from "./auth";
+import { Metadata, AuthRequest } from "@types";
 import { deleteMetadata, findMetadata, findMetadataByAppName, insertMetadata, updateMetadata } from "./db/metadataDb";
 
 type CachedMetadata = {
@@ -33,7 +32,7 @@ export default class MetadataRequestProcessor {
     return result;
   }
 
-  async getMetadata(options: any, ctx: AuthContext): Promise<any> {
+  async getMetadata(options: any, req: AuthRequest): Promise<any> {
     let result: any = await findMetadata();
     if (options && options.appName) {
       result = await findMetadataByAppName(options.appName);
@@ -43,56 +42,37 @@ export default class MetadataRequestProcessor {
         this._cachedMetadata[metadata.appName] = metadata;
       });
     }
-    try {
-      assertRole(ctx, Role.Reviewer);
-    } catch (e) {
-      const replacer = (key: string, value: any) => {
-        if (key === "proprietary") {
-          return undefined;
-        } else {
-          return value;
-        }
-      };
-      if (result) {
-        let resultString = JSON.stringify(result, replacer);
-        result = JSON.parse(resultString);
+    const replacer = (key: string, value: any) => {
+      if (key === "proprietary") {
+        return undefined;
+      } else {
+        return value;
       }
+    };
+    if (result) {
+      let resultString = JSON.stringify(result, replacer);
+      result = JSON.parse(resultString);
     }
     return result;
   }
 
-  async process(body: any, ctx: AuthContext): Promise<any> {
+  async process(body: any, req: AuthRequest): Promise<any> {
     const appName: string = body.appName;
     const action: string = body.action;
     const metadata: Metadata = body.metadata;
     let result: any | undefined = undefined;
     switch (action) {
       case "insert":
-        try {
-          assertRole(ctx, Role.Admin);
-          result = await insertMetadata(metadata);
-        } catch (error) {
-          throw new Error(`MetadataRequestProcessor: insert failed. insufficient permissions.`);
-        }
+        result = await insertMetadata(metadata);
         break;
       case "update":
-        try {
-          assertRole(ctx, Role.Admin);
-          result = await updateMetadata(metadata);
-        } catch (error) {
-          throw new Error(`MetadataRequestProcessor: update failed. insufficient permissions.`);
-        }
+        result = await updateMetadata(metadata);
         break;
       case "delete":
-        try {
-          assertRole(ctx, Role.Admin);
-          result = await deleteMetadata(metadata.id);
-        } catch (error) {
-          throw new Error(`MetadataRequestProcessor: delete failed. insufficient permissions.`);
-        }
+        result = await deleteMetadata(metadata.id);
         break;
       default:
-        result = await this.getMetadata({ appName }, ctx);
+        result = await this.getMetadata({ appName }, req);
     }
     if (result) {
       return result;
