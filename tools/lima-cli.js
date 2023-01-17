@@ -17,10 +17,10 @@ curl --location --request POST 'http://localhost:8084/auth' \
      }'
 */
 
+let authData
+
 async function getAuthData() {
-    if (process.env.TOKEN) {
-        return process.env.TOKEN
-    } else if (process.env.AUTH_URL && process.env.DEVICE_ACCOUNT_ID && process.env.DEVICE_PASSWORD) {
+    if (process.env.AUTH_URL && process.env.DEVICE_ACCOUNT_ID && process.env.DEVICE_PASSWORD) {
         return new Promise((resolve, reject) => {
             axios.post(process.env.AUTH_URL, {
                 accountId: process.env.DEVICE_ACCOUNT_ID,
@@ -44,6 +44,11 @@ async function getAuthData() {
     }
 }
 
+async function refreshAuth() {
+    authData = await getAuthData()
+    console.log(authData)
+}
+
 async function callLima(path, body, authData) {
     return new Promise((resolve, reject) => {
         const url = `${process.env.URL}/${path}`
@@ -54,9 +59,19 @@ async function callLima(path, body, authData) {
                     cookie: 'access_token=' + authData.access_token,
                 }
             })
-            .then(function (response) {
-                // console.log(response)
-                resolve(response.data)
+            .then(async function (response) {
+                if (response.status === 200) {
+                    if (response.request?.path === '/signin/') { // i.e. auth expired
+                        await refreshAuth()
+                        resolve('refreshed auth. try again.')
+                    } else {
+                        //console.log(response)
+                        resolve(response.data)
+                    }
+                } else {
+                    reject(`response.status is not 200`)
+                }
+
             })
             .catch(function (error) {
                 console.log(url)
@@ -111,15 +126,14 @@ async function handleInput(input, authData) {
             console.log(result)
             break;
         case 'transactions':
-            result = await callLima('transactions', { type: 'user'}, authData)
+            result = await callLima('transactions', { type: 'user' }, authData)
             console.log(result)
             break
     }
 }
 
 async function doIt() {
-    const authData = await getAuthData()
-    console.log(authData)
+    await refreshAuth()
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout

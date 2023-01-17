@@ -20,6 +20,7 @@ const main = async () => {
 
   const app = express()
 
+  console.log(`LimaService: Looking for lima-app at path:`, process.env.LIMA_APP_PATH)
   // Set expected Content-Types
   app.use(express.json())
   app.use(express.text())
@@ -46,25 +47,31 @@ const main = async () => {
   // http routes
 
   const expressRouterWrapper = new ExpressRouterWrapper('', serviceOptions)
-  expressRouterWrapper.addGetHandler('/get', handlers.ExampleHandlers.getInstance().getHandler, ['example:read'])
-  expressRouterWrapper.addPostHandler('/post', handlers.ExampleHandlers.getInstance().postHandler, ['example:read'])
 
-  expressRouterWrapper.addGetHandlerNoAuth('/auth', handlers.MockAuthHandlers.getInstance().authHandler)
-  expressRouterWrapper.addGetHandlerNoAuth('/refresh', handlers.MockAuthHandlers.getInstance().refreshHandler)
-  expressRouterWrapper.addPostHandlerNoAuth('/auth', handlers.MockAuthHandlers.getInstance().authHandler)
+  // AUTH
+  expressRouterWrapper.addGetHandlerNoAuth('/signin', handlers.SiteHandlers.signinHandler)
+  expressRouterWrapper.addGetHandlerNoAuth('/forbidden', handlers.SiteHandlers.forbiddenHandler)
+  expressRouterWrapper.addGetHandlerNoAuth('/auth', handlers.MockAuthHandlers.authHandler)
+  expressRouterWrapper.addGetHandlerNoAuth('/refresh', handlers.MockAuthHandlers.refreshHandler)
+  expressRouterWrapper.addPostHandlerNoAuth('/auth', handlers.MockAuthHandlers.authHandler)
 
-  expressRouterWrapper.addGetHandler('/dashboard', handlers.SiteHandlers.getInstance().dashboardHandler, ['example:read'])
-  expressRouterWrapper.addGetHandler('/console', handlers.SiteHandlers.getInstance().consoleHandler, ['example:admin'])
-  expressRouterWrapper.addGetHandlerNoAuth('/signin', handlers.SiteHandlers.getInstance().signinHandler)
-  expressRouterWrapper.addGetHandlerNoAuth('/forbidden', handlers.SiteHandlers.getInstance().forbiddenHandler)
-  expressRouterWrapper.addGetHandlerNoAuth('/', handlers.SiteHandlers.getInstance().redirectToDashboardHandler)
+  // ADMIN
+  expressRouterWrapper.addGetHandler('/dashboard', handlers.SiteHandlers.dashboardHandler, ['example:read'])
+  expressRouterWrapper.addGetHandler('/console', handlers.SiteHandlers.consoleHandler, ['example:admin'])
 
-  // expressRouterWrapper.addGetHandler('/time', handlers.TimeHandler, ['example:read'])
+  // SERVICE
+  expressRouterWrapper.addPostHandler('/users', handlers.LimaHandlers.findUsers, ['example:read'])
+  expressRouterWrapper.addPostHandler('/metadata', handlers.LimaHandlers.findMetadata, ['example:read'])
+  expressRouterWrapper.addPostHandler('/transaction', handlers.LimaHandlers.processTransaction, ['example:read'])
+  expressRouterWrapper.addPostHandler('/transactions', handlers.LimaHandlers.searchTransactionsWithCriteria, ['example:read'])
 
-  expressRouterWrapper.addPostHandler('/users', handlers.LimaHandlers.getInstance().findUsers, ['example:read'])
-  expressRouterWrapper.addPostHandler('/metadata', handlers.LimaHandlers.getInstance().findMetadata, ['example:read'])
-  expressRouterWrapper.addPostHandler('/transaction', handlers.LimaHandlers.getInstance().processTransaction, ['example:read'])
-  expressRouterWrapper.addPostHandler('/transactions', handlers.LimaHandlers.getInstance().searchTransactionsWithCriteria, ['example:read'])
+  // UTIL
+  expressRouterWrapper.addGetHandler('/time', handlers.TimeHandler, ['example:read'])
+
+  // lima-app
+  expressRouterWrapper.addGetHandler('*', handlers.SiteHandlers.limaAppHandler, ['example:read'])
+
+  // expressRouterWrapper.addGetHandlerNoAuth('/', handlers.SiteHandlers.redirectToDashboardHandler)
 
   if (expressRouterWrapper) {
     const routerPath = expressRouterWrapper.path !== '' ? `/${expressRouterWrapper.path}` : ''
@@ -82,20 +89,35 @@ const main = async () => {
   // ]
   // const wss: WebSocketServer = setupWebSocketServer(httpServer, wssRoutes, serviceOptions)
 
+  // socket-io routes
+  
   setupSocketIoDeviceServer(httpServer, '/socket-device/')
 
   process.on('SIGINT', () => {
-    console.warn('Received interrupt, shutting down')
+    const errorTimestamp = new Date().toLocaleString()
+    console.error(`LimaService: [${errorTimestamp}] Received interrupt, shutting down`)
     httpServer.close()
     process.exit(0)
   })
 
   httpServer.listen(port, () => {
-    console.info(`HTTP/WS server is ready and listening at port ${port}!`)
+    console.log(`LimaService: (HTTP/ws/socket-io server) is ready and listening at port ${port}!`)
   })
 }
 
+process.on('uncaughtException', function (exception) {
+  const errorTimestamp = new Date().toLocaleString()
+  console.error(`LimaService: [${errorTimestamp}] uncaughtException:`, exception);
+
+});
+
+process.on('unhandledRejection', (reason, p) => {
+  const errorTimestamp = new Date().toLocaleString()
+  console.error(`LimaService: [${errorTimestamp}] unhandledRejection at: Promise`, p, " reason: ", reason);
+});
+
 main().catch((error) => {
-  console.error('Detected an unrecoverable error. Stopping!')
+  const errorTimestamp = new Date().toLocaleString()
+  console.error(`LimaService: [${errorTimestamp}] Detected an unrecoverable error. Stopping!`)
   console.error(error)
 })

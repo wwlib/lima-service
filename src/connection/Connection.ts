@@ -1,5 +1,7 @@
-import { RCSCommand } from 'robokit-command-system';
+import { AuthRequest, QueryBody } from '@types';
 import { Socket } from 'socket.io';
+import TransactionProcessor from 'src/lima/TransactionProcessor';
+import { LimaCommand } from 'src/SocketIoDeviceServer';
 
 export enum ConnectionType {
     DEVICE = 'device',
@@ -7,7 +9,7 @@ export enum ConnectionType {
     CONTROLLER = 'controller',
 }
 
-export enum ConnectionEventType {
+export enum ConnectionAnalyticsEventType {
     COMMAND_FROM = 'command_from',
     COMMAND_TO = 'command_to',
     MESSAGE_FROM = 'message_from',
@@ -29,8 +31,6 @@ export default class Connection {
     private _messageCountFrom: number;
     private _messageCountFromQuota: number;
     private _messageCountTo: number;
-    private _audioBytesFrom: number;
-    private _audioBytesFromQuota: number;
     private _syncOffest: number;
 
     constructor(type: ConnectionType, socket: Socket, accountId: string) {
@@ -46,8 +46,6 @@ export default class Connection {
         this._messageCountFrom = 0
         this._messageCountFromQuota = 0
         this._messageCountTo = 0
-        this._audioBytesFrom = 0
-        this._audioBytesFromQuota = 0
         this._syncOffest = 0;
     }
 
@@ -61,7 +59,7 @@ export default class Connection {
 
     toString(): string {
         const syncOffset = Math.round(this._syncOffest * 1000) / 1000
-        return `${this._accountId}: [${this._socketId.substring(0, 6)}] syncOffset: ${syncOffset} ms, commandsFrom: ${this._commandCountFrom}. messagesFrom: ${this._messageCountFrom}, audioFrom: ${this._audioBytesFrom}`
+        return `${this._accountId}: [${this._socketId.substring(0, 6)}] syncOffset: ${syncOffset} ms, commandsFrom: ${this._commandCountFrom}. messagesFrom: ${this._messageCountFrom}`
     }
 
     sendMessage(message: unknown) {
@@ -70,28 +68,25 @@ export default class Connection {
         }
     }
 
-    sendCommand(command: RCSCommand) {
+    sendCommand(command: LimaCommand) {
         if (this._socket && this._socket.connected) {
             this._socket.emit('command', command)
         }
     }
 
-    onEvent(eventType: ConnectionEventType, data: string | number) {
+    onAnalyticsEvent(eventType: ConnectionAnalyticsEventType, data: string | number) {
         switch (eventType) {
-            case ConnectionEventType.COMMAND_FROM:
+            case ConnectionAnalyticsEventType.COMMAND_FROM:
                 this._commandCountFrom += 1
                 break;
-            case ConnectionEventType.COMMAND_TO:
+            case ConnectionAnalyticsEventType.COMMAND_TO:
                 this._commandCountTo += 1
                 break;
-            case ConnectionEventType.MESSAGE_FROM:
+            case ConnectionAnalyticsEventType.MESSAGE_FROM:
                 this._messageCountFrom += 1
                 break;
-            case ConnectionEventType.MESSAGE_TO:
+            case ConnectionAnalyticsEventType.MESSAGE_TO:
                 this._messageCountTo += 1
-                break;
-            case ConnectionEventType.AUDIO_BYTES_FROM:
-                this._audioBytesFrom += +data
                 break;
         }
     }
@@ -103,6 +98,26 @@ export default class Connection {
     emitEvent(eventName: string, data?: any) {
         if (this._socket) {
             this._socket.emit(eventName, data)
+        }
+    }
+
+    // NLU
+
+    async handleTextCommand(command: LimaCommand) {
+        console.log('Connection: handleTextCommand:', command)
+        // TODO: add error handling
+        const queryBody: QueryBody = command.payload
+        const req: any = { // AuthRequest
+            auth: {
+                accountId: this._accountId,
+                accessTokenPayload: this._socket?.data.decodedAccessToken
+            }
+        }
+        try {
+            const response: any = await TransactionProcessor.Instance().process(queryBody, req)
+            this.sendMessage({ status: 'OK', accountId: this._accountId, response })
+        } catch (error) {
+            this.sendMessage({ status: 'NOK', accountId: this._accountId, error })
         }
     }
 

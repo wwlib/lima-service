@@ -26,6 +26,7 @@
     "test": "echo TODO",
     "test:ci": "echo TODO",
     "clean": "rm -rf dist node_modules",
+    "copy-lima-app": "mkdir -p lima-app && cp -r ../lima-app/build lima-app",
     "docker:build": "docker build -t lima-service .",
     "docker:run": "docker run -it --rm -p 8084:8084 --env-file ./.env lima-service"
   },
@@ -36,6 +37,7 @@
     "dotenv": "^10.0.0",
     "express": "^4.18.1",
     "express-async-handler": "^1.2.0",
+    "fs-extra": "^11.1.0",
     "handlebars": "^4.7.7",
     "handlebars-loader": "^1.7.2",
     "http-status-codes": "^2.1.4",
@@ -45,7 +47,6 @@
     "npm-watch": "^0.11.0",
     "openai": "^3.1.0",
     "pino-pretty": "^7.1.0",
-    "robokit-command-system": "https://github.com/wwlib/robokit-command-system#100e927a9336562f6e840f3961dc91ac8009b3d4",
     "socket.io": "^4.5.2",
     "uuidv4": "^6.1.1",
     "ws": "^8.6.0"

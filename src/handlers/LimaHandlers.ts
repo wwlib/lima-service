@@ -6,19 +6,8 @@ import { searchTransactionsWithCriteria } from 'src/lima/db/transactionDb';
 import TransactionProcessor from 'src/lima/TransactionProcessor';
 
 export class LimaHandlers {
-  private static instance: LimaHandlers;
 
-  private constructor() {
-  }
-
-  public static getInstance(): LimaHandlers {
-    if (!LimaHandlers.instance) {
-      LimaHandlers.instance = new LimaHandlers()
-    }
-    return LimaHandlers.instance
-  }
-
-  public findUsers: Handler = async (req: AuthRequest, res: Response) => {
+  static findUsers: Handler = async (req: AuthRequest, res: Response) => {
     let accountId = '';
     if (req.auth && req.auth.accessTokenPayload) {
       accountId = req.auth.accessTokenPayload.accountId
@@ -28,7 +17,7 @@ export class LimaHandlers {
     res.status(StatusCodes.OK).json(result)
   }
 
-  public findMetadata: Handler = async (req: AuthRequest, res: Response) => {
+  static findMetadata: Handler = async (req: AuthRequest, res: Response) => {
     let accountId = '';
     if (req.auth && req.auth.accessTokenPayload) {
       accountId = req.auth.accessTokenPayload.accountId
@@ -38,7 +27,7 @@ export class LimaHandlers {
     res.status(StatusCodes.OK).json(result)
   }
 
-  public processTransaction: Handler = async (req: AuthRequest, res: Response) => {
+  static processTransaction: Handler = async (req: AuthRequest, res: Response) => {
     let accountId = '';
     if (req.auth && req.auth.accessTokenPayload) {
       accountId = req.auth.accessTokenPayload.accountId
@@ -50,7 +39,7 @@ export class LimaHandlers {
     res.status(StatusCodes.OK).json(result)
   }
 
-  public searchTransactionsWithCriteria: Handler = async (req: AuthRequest, res: Response) => {
+  static searchTransactionsWithCriteria: Handler = async (req: AuthRequest, res: Response) => {
     let accountId = '';
     if (req.auth && req.auth.accessTokenPayload) {
       accountId = req.auth.accessTokenPayload.accountId

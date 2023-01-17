@@ -133,3 +133,6 @@ temp/
 junit.xml
 hide
 !tools/.env
+
+# a copy of the frontend app for inclusion in the docker container
+lima-app
