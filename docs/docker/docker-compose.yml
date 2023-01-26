@@ -17,6 +17,8 @@ services:
       - lima-service.env
     ports:
       - '8084:8084'
+    volumes:
+      - ./.limarc.json:/usr/app/.limarc.json
       
 volumes:
   redis_data_lima:
