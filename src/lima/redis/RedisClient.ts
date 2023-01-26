@@ -118,7 +118,7 @@ export class RedisClient {
       for (let i: number = 0; i < metadata.length; i++) {
         const item = metadata[i]
         MetadataRequestProcessor.Instance().addMetadataToCache(item)
-        console.log(`RedisClient: ensuring metadata: ${item.key} exits`)
+        console.log(`RedisClient: ensuring metadata: ${item.key} exists`)
         try {
           await this.setJsonAsync(item.key, item)
         } catch (error) {
@@ -130,14 +130,14 @@ export class RedisClient {
     const keys: any[] = data.keys
     if (keys && keys.length) {
       keys.forEach(item => {
-        console.log(`RedisClient: ensuring keys: ${item.key} exits [unimpemented]`) // TODO
+        console.log(`RedisClient: ensuring keys: ${item.key} exists [unimpemented]`) // TODO
       })
     }
 
     const accounts: any[] = data.accounts
     if (accounts && accounts.length) {
       accounts.forEach(item => {
-        console.log(`RedisClient: ensuring account: ${item.key} exits [unimpemented]`) // TODO
+        console.log(`RedisClient: ensuring account: ${item.key} exists [unimpemented]`) // TODO
       })
     }
 
@@ -145,7 +145,7 @@ export class RedisClient {
     if (indices && indices.length) {
       for (let i: number = 0; i < indices.length; i++) {
         const item = indices[i]
-        console.log(`RedisClient: ensuring index: ${item.key} exits`)
+        console.log(`RedisClient: ensuring index: ${item.key} exists`)
         try {
           await this._client.ft.create(item.key, item.schema, item.options)
         } catch (error) {

@@ -57,6 +57,8 @@ redis
 
 ```
 docker run -p 6379:6379 -it --rm redislabs/redismod
+
+docker run -p 6380:6380 -it --rm redislabs/redismod --port 6380
 ```
 
 
