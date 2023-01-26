@@ -28,10 +28,9 @@
     "clean": "rm -rf dist node_modules",
     "copy-lima-app": "mkdir -p lima-app && cp -r ../lima-app/build lima-app",
     "docker:build": "docker build -t lima-service .",
-    "docker:run": "docker run -it --rm -p 8084:8084 --env-file ./.env lima-service"
+    "docker:run": "docker run -it -v $(pwd)/.limarc.json:/usr/app/.limarc.json --rm -p 8084:8084 --env-file ./.env lima-service"
   },
   "dependencies": {
-    "@types/mongodb": "^3.6.20",
     "axios": "^1.2.0",
     "cookie-parser": "^1.4.6",
     "dotenv": "^10.0.0",
@@ -41,14 +40,14 @@
     "handlebars": "^4.7.7",
     "handlebars-loader": "^1.7.2",
     "http-status-codes": "^2.1.4",
+    "jsonfile": "^6.1.0",
     "jsonwebtoken": "^9.0.0",
-    "mongodb": "^3.7.3",
-    "mongodb-memory-server": "^6.9.6",
     "npm-watch": "^0.11.0",
     "openai": "^3.1.0",
     "pino-pretty": "^7.1.0",
+    "redis": "^4.5.1",
     "socket.io": "^4.5.2",
-    "uuidv4": "^6.1.1",
+    "uuid": "^9.0.0",
     "ws": "^8.6.0"
   },
   "devDependencies": {
@@ -73,7 +72,6 @@
     "ts-node": "^10.2.0",
     "tsconfig-paths-webpack-plugin": "^3.5.1",
     "typescript": "4.4.3",
-    "uuid": "^8.3.2",
     "webpack": "^5.58.2",
     "webpack-cli": "^4.9.1",
     "webpack-node-externals": "^3.0.0"

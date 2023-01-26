@@ -1,24 +1,27 @@
-import { AuthRequest, Environment, Metadata, AccountType, ServiceType, QueryBody, Session, Transaction } from "@types";
-import { newTransactionWithDataAndSession } from "./db/transactionDb";
+import { AuthRequest, Environment, Metadata, AccountType, ServiceType, QueryBody, Transaction } from "@types";
 import { LIMA_VERSION } from "./versions";
-import TransactionLogger from "./TransactionLogger";
-import { getNewSession, getSessionWithId } from "./db/sessionDb";
-import { log } from "./logger";
 import MetadataRequestProcessor from "./MetadataRequestProcessor";
-import { LuisClient } from "./luis/LuisClient";
+import { LuisClient } from "./microsoft/LuisClient";
 import { GPT3TextClient } from "./openai/Gpt3TextClient";
+import { RedisClient } from "./redis/RedisClient";
 // import { getGrammarParserResult } from "../grammarParser/GrammarParserClient";
 
 const axios = require('axios')
 
-export default class TransactionProcessor {
+export class TransactionProcessor {
   private static _instance: TransactionProcessor;
 
   public luisClient = new LuisClient();
   public gpt3TextClient = new GPT3TextClient();
 
+  private _redisClient: RedisClient | undefined
+
   static Instance() {
     return this._instance || (this._instance = new this());
+  }
+
+  setRedisClient(redisClient: RedisClient) {
+    this._redisClient = redisClient
   }
 
   async getQNAAnswer(options: any): Promise<any> {
@@ -67,10 +70,9 @@ export default class TransactionProcessor {
     appName: string,
     appId: string,
     appVersion: string,
-    session: Session,
     serviceConfig: any,
     req: AuthRequest,
-  ): Promise<Transaction> {
+  ): Promise<any> {
     try {
       const startTime: number = new Date().getTime();
       let qnaResponse = await this.getQNAAnswer({
@@ -119,6 +121,7 @@ export default class TransactionProcessor {
         confidence = qnaResponse.answers[0].score;
       }
 
+      // TODO:
       // filter data not acessible for regular users
       // auth: {
       //   permissions: [
@@ -156,7 +159,6 @@ export default class TransactionProcessor {
         appName: appName,
         appVersion: versionInfo,
         accountId: req?.auth?.accountId || body.accountId,
-        sessionId: session.id,
         environment: body.environment || Environment.Production,
         input: body.input,
         inputData: body.inputData,
@@ -167,9 +169,7 @@ export default class TransactionProcessor {
         response: qnaResponse,
         responseTime: elapsedTime,
       };
-
-      const transaction: Transaction = await newTransactionWithDataAndSession(data, session);
-      return transaction;
+      return data
     } catch (error) {
       throw error;
     }
@@ -181,9 +181,7 @@ export default class TransactionProcessor {
     const mintMakerAppId = options.appId;
     const endpoint = options.serviceConfig?.MINT_ENDPOINT;
     const token = options.serviceConfig?.MINT_BASIC_AUTH_TOKEN;
-
     const url = `${endpoint}`
-
     const response = await axios.post(url, question,
       {
         headers: {
@@ -202,10 +200,9 @@ export default class TransactionProcessor {
     appName: string,
     appId: string,
     appVersion: string,
-    session: Session,
     serviceConfig: any,
     req: AuthRequest,
-  ): Promise<Transaction> {
+  ): Promise<any> {
     const startTime: number = new Date().getTime();
     const mintResponse = await this.getMintAnswer({
       appName: appName,
@@ -240,7 +237,6 @@ export default class TransactionProcessor {
       appName: appName,
       appVersion: versionInfo,
       accountId: body.accountId,
-      sessionId: session.id,
       environment: body.environment || Environment.Production,
       input: body.input,
       inputData: body.inputData,
@@ -251,8 +247,7 @@ export default class TransactionProcessor {
       response: mintResponse,
       responseTime: elapsedTime,
     };
-
-    return await newTransactionWithDataAndSession(data, session);
+    return data
   }
 
   // async processGrammarTransaction(
@@ -260,7 +255,7 @@ export default class TransactionProcessor {
   //   appName: string,
   //   appId: string,
   //   appVersion: string,
-  //   session: Session,
+  //   sessionId: string,
   // ): Promise<Transaction> {
   //   const startTime: number = new Date().getTime();
   //   const response: any = await getGrammarParserResult({
@@ -296,21 +291,14 @@ export default class TransactionProcessor {
   // }
 
   async process(body: QueryBody, req: AuthRequest): Promise<Transaction> {
-    let session: Session | null = null;
-
-    if (body.sessionId) {
-      session = await getSessionWithId(body.sessionId);
-    }
-    if (!session) {
-      session = await getNewSession();
-    }
-
+    let sessionId: string | undefined = undefined;
+    let nluResult: any = {}
     let result: Transaction | undefined = undefined;
 
     const appData: Metadata | undefined = await MetadataRequestProcessor.Instance().getCachedMetadataWithAppName(body.appName!);
-
+    console.log(`appData:`, appData)
     if (!appData) {
-      log(`Cannot find metadata for appname: ${body.appName}`);
+      console.log(`Cannot find metadata for appname: ${body.appName}`);
 
       return {
         id: '',
@@ -321,7 +309,7 @@ export default class TransactionProcessor {
         appName: body.appName,
         appVersion: '',
         accountId: body.accountId,
-        sessionId: session?.id!,
+        sessionId: '',
         environment: body.environment || Environment.Production,
         input: body.input,
         inputData: body.inputData,
@@ -329,7 +317,7 @@ export default class TransactionProcessor {
         intentDetail: '',
         confidence: 1.0,
         category: '',
-        response: { error: `Cannot find metadata for appname: ${body.appName}`},
+        response: { error: `Cannot find metadata for appname: ${body.appName}` },
         responseTime: 0,
         entities: {},
       };
@@ -337,68 +325,64 @@ export default class TransactionProcessor {
 
     const serviceType: ServiceType = body.serviceType || appData.serviceType;
 
-    if (!(serviceType && appData.appId)) throw new Error("invalid appId or serviceType:");
+    if (!(serviceType && appData.appId)) throw new Error(`invalid appId (${appData.appId}) or serviceType (${serviceType})`);
 
     switch (serviceType) {
       case ServiceType.QnaMaker:
-        result = await this.processQnaMakerTransaction(
+        nluResult = await this.processQnaMakerTransaction(
           body,
           body.appName!,
           appData.appId,
           appData.appVersion,
-          session!,
           appData.serviceConfig,
           req,
         );
         break;
       case ServiceType.Luis:
-        result = await this.luisClient.processLuisTransaction(
+        nluResult = await this.luisClient.processLuisTransaction(
           body,
           body.appName!,
           appData.appId,
           appData.appVersion,
-          session!,
           appData.serviceConfig,
           req,
         );
         break;
       // case ServiceType.GrammarParser:
-      //   result = await this.processGrammarTransaction(body, body.appName, appData.appId, appData.appVersion, session);
+      //   nluResult = await this.processGrammarTransaction(body, body.appName, appData.appId, appData.appVersion, session);
       //   break;
       case ServiceType.Mint:
-        result = await this.processMintTransaction(body, body.appName!, appData.appId, appData.appVersion, session!, appData.serviceConfig, req);
+        nluResult = await this.processMintTransaction(body, body.appName!, appData.appId, appData.appVersion, appData.serviceConfig, req);
         break;
       case ServiceType.GPT3Text:
-        result = await this.gpt3TextClient.processGPT3TextTransaction(
+        nluResult = await this.gpt3TextClient.processGPT3TextTransaction(
           body,
           body.appName!,
           appData.appId,
           appData.appVersion,
-          session!,
           appData.serviceConfig,
           req,
         );
         break;
     }
 
-    if (result) {
-      TransactionLogger.Instance().log(result);
+    result = nluResult
+    if (this._redisClient) {
+      try {
+        if (body.sessionId) {
+          sessionId = body.sessionId;
+        }
+        if (!sessionId) {
+          sessionId = await this._redisClient.getNewSessionId();
+        }
+        result = await this._redisClient.newTransactionWithDataAndSession(nluResult as any, sessionId!);
+      } catch (error) {
+        console.log(`TransactionProcessor: ignoring redisClient error:`, error)
+      }
     }
-
-    if (result) {
-      return result;
-    } else {
+    if (!result) {
       throw new Error(`TransactionProcessor: api call failed. unable to process transaction.`);
     }
+    return result;
   }
-}
-
-export async function initTransactionProcessor() { }
-
-function stripPunctuation(s: string): string {
-  if (s.endsWith(".") || s.endsWith("?")) {
-    s = s.substring(0, s.length - 1);
-  }
-
-  return s.trim().toLowerCase();
 }

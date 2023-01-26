@@ -1,6 +1,5 @@
-import { Environment, AccountType, ServiceType, QueryBody, Session, Transaction, AuthRequest } from "@types";
+import { Environment, AccountType, ServiceType, QueryBody, Transaction, AuthRequest } from "@types";
 import { LIMA_VERSION } from "../versions";
-import { newTransactionWithDataAndSession } from "../db/transactionDb";
 
 const { Configuration, OpenAIApi } = require("openai")
 
@@ -13,10 +12,9 @@ export class GPT3TextClient {
     appName: string,
     appId: string,
     appVersion: string,
-    session: Session,
     serviceConfig: any,
     req: AuthRequest,
-  ): Promise<Transaction> {
+  ): Promise<any> {
     const startTime: number = new Date().getTime();
 
     const configuration = new Configuration({
@@ -54,7 +52,6 @@ export class GPT3TextClient {
       appName: appName,
       appVersion: appVersion,
       accountId: body.accountId,
-      sessionId: session.id,
       environment: body.environment || Environment.Production,
       input: body.input,
       inputData: body.inputData,
@@ -64,8 +61,6 @@ export class GPT3TextClient {
     };
 
     console.log(data)
-
-    const transaction: Transaction = await newTransactionWithDataAndSession(data, session);
-    return transaction;
+    return data;
   }
 }

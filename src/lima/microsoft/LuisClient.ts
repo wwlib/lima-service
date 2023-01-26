@@ -1,6 +1,7 @@
-import { Environment, AccountType, ServiceType, QueryBody, Session, Transaction, AuthRequest } from "@types";
+import { Environment, AccountType, ServiceType, QueryBody, Transaction, AuthRequest } from "@types";
 import { LIMA_VERSION } from "../versions";
-import { newTransactionWithDataAndSession } from "../db/transactionDb";
+// import { newTransactionWithDataAndSession } from "../db/transactionDb";
+
 
 const axios = require('axios');
 
@@ -10,10 +11,9 @@ export class LuisClient {
     appName: string,
     appId: string,
     appVersion: string,
-    session: Session,
     serviceConfig: any,
     req: AuthRequest,
-  ): Promise<Transaction> {
+  ): Promise<any> {
     const startTime: number = new Date().getTime();
     const luisResponse = await this.requestLuis(appId, body.input!, serviceConfig);
 
@@ -34,7 +34,6 @@ export class LuisClient {
       appName: appName,
       appVersion: `${LIMA_VERSION}#${appVersion}`,
       accountId: body.accountId,
-      sessionId: session.id,
       environment: body.environment || Environment.Production,
       input: body.input,
       inputData: body.inputData,
@@ -46,9 +45,7 @@ export class LuisClient {
       response: luisResponse,
       responseTime: elapsedTime,
     };
-
-    const transaction: Transaction = await newTransactionWithDataAndSession(data, session);
-    return transaction;
+    return data;
   }
 
   async requestLuis(

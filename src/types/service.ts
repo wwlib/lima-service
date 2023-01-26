@@ -58,7 +58,8 @@ export type Annotation = {
   id?: string;
   type?: AccountType;
   clientId?: string; // user-app | test-system
-  appName?: string; // 'sharecare-hepc',
+  appName?: string; // model name
+  serviceType?: string;
   accountId?: string; // 'anonymous' | 'auto' | user-id
   sessionId?: string;
   transactionId?: string;
@@ -103,27 +104,21 @@ export type Transaction = {
   responseTime?: number;
 };
 
-export type Session = {
-  id: string;
-};
+export type TransactionCriteria = {
+  id: string
+  sessionId: string
+  serviceType: string
+  accountId: string
+}
 
-export type TransactionCriteria = Omit<
-  Transaction,
-  "id" | "datestamp" | "input" | "intentDetail" | "category" | "response" | "transactionLogUri"
-> & { transactionId: string };
-
-export type AnnotationCriteria = Omit<
-  Annotation,
-  | "id"
-  | "datestamp"
-  | "datestampModified"
-  | "revision"
-  | "deidentifiedInput"
-  | "notes"
-  | "jiraIds"
-  | "appSpecificData"
-  | "status"
-> & { annotationId: string; status: AnnotationStatus | AnnotationStatus[]; jiraId: string };
+export type AnnotationCriteria = {
+  id: string
+  transactionId: string
+  sessionId: string
+  serviceType: string
+  accountId: string
+  criteriaString: string
+}
 
 export interface Intent {
   intentId: string;
@@ -133,7 +128,6 @@ export interface Intent {
 }
 
 export interface Metadata {
-  id: string;
   appName: string;
   appId: string;
   appVersion: string;

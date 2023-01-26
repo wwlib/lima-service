@@ -1,0 +1,125 @@
+{
+    "accounts": [
+        {
+            "key": "lima:account:client1",
+            "id": "client1",
+            "auth": {
+                "permissions": [
+                    {
+                        "scopes": [
+                            "read",
+                            "admin"
+                        ],
+                        "resource": "example"
+                    }
+                ]
+            }
+        }
+    ],
+    "indices": [
+        {
+            "key": "lima:idx:metadata",
+            "schema": {
+                "$.appName": {
+                    "type": "TEXT",
+                    "AS": "appName"
+                },
+                "$.serviceType": {
+                    "type": "TEXT",
+                    "AS": "serviceType"
+                }
+            },
+            "options": {
+                "ON": "JSON",
+                "PREFIX": "lima:metadata:"
+            }
+        },
+        {
+            "key":  "lima:idx:accounts",
+            "schema": {
+                "$.id": {
+                    "type": "TEXT",
+                    "AS": "id"
+                }
+            },
+            "options": {
+                "ON": "JSON",
+                "PREFIX": "lima:account:"
+            }
+        },
+        {
+            "key": "lima:idx:trx",
+            "schema": {
+                "$.id": {
+                    "type": "TEXT",
+                    "AS": "id"
+                },
+                "$.sessionId": {
+                    "type": "TEXT",
+                    "AS": "sessionId"
+                },
+                "$.serviceType": {
+                    "type": "TEXT",
+                    "AS": "serviceType"
+                },
+                "$.accountId": {
+                    "type": "TEXT",
+                    "AS": "accountId"
+                }
+            },
+            "options": {
+                "ON": "JSON",
+                "PREFIX": "lima:trx:"
+            }
+        },
+        {
+            "key": "lima:idx:anx",
+            "schema": {
+                "$.id": {
+                    "type": "TEXT",
+                    "AS": "id"
+                },
+                "$.transactionId": {
+                    "type": "TEXT",
+                    "AS": "transactionId"
+                },
+                "$.sessionId": {
+                    "type": "TEXT",
+                    "AS": "sessionId"
+                },
+                "$.serviceType": {
+                    "type": "TEXT",
+                    "AS": "serviceType"
+                },
+                "$.status": {
+                    "type": "TEXT",
+                    "AS": "status"
+                },
+                "$.priority": {
+                    "type": "TEXT",
+                    "AS": "priority"
+                },
+                "$.issueType": {
+                    "type": "TEXT",
+                    "AS": "issueType"
+                },
+                "$.assignedTo": {
+                    "type": "TEXT",
+                    "AS": "assignedTo"
+                },
+                "$.accountId": {
+                    "type": "TEXT",
+                    "AS": "accountId"
+                },
+                "$.jiraIds": {
+                    "type": "TAG",
+                    "AS": "jiraIds"
+                }
+            },
+            "options": {
+                "ON": "JSON",
+                "PREFIX": "lima:anx:"
+            }
+        }
+    ]
+}

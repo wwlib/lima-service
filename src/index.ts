@@ -6,24 +6,75 @@ import * as handlers from '@handlers'
 import { ExpressRouterWrapper } from './util/ExpressRouterWrapper'
 // import { WSSRoutes, setupWebSocketServer } from './util/WebSocketServerWrapper'
 import { setupSocketIoDeviceServer } from './SocketIoDeviceServer'
-import { initMongoClient } from "./lima/db/mongoClient";
+import { RedisClient } from './lima/redis/RedisClient'
+import { TransactionProcessor } from './lima/TransactionProcessor'
+import { LimaHandlers } from '@handlers'
+import { AnnotationProcessor } from './lima/AnnotationProcessor'
+import MetadataRequestProcessor from './lima/MetadataRequestProcessor'
 
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
+const jsonfile = require('jsonfile')
 
 dotenv.config()
 
 const main = async () => {
+  const redisClient = new RedisClient(process.env.REDIS_HOST!)
+  MetadataRequestProcessor.Instance().setRedisClient(redisClient)
+  TransactionProcessor.Instance().setRedisClient(redisClient)
+  AnnotationProcessor.Instance().setRedisClient(redisClient)
+  LimaHandlers.setRedisClient(redisClient)
 
-  await initMongoClient();
-  console.log(`Mongodb client initialized.`)
+  // populate the metadata cache with bootstrap data independent of redis
+  // allows lima-service to run without redis, if necessary
+  // Note: RedisClient also loads bootstrap data
+  try {
+    console.log(`Loading and caching metadata from .limarc.json`)
+    const limarcData = await jsonfile.readFile("./.limarc.json")
+    if (limarcData && limarcData.metadata && limarcData.metadata.length) {
+      for (let i: number = 0; i < limarcData.metadata.length; i++) {
+        const item = limarcData.metadata[i]
+        MetadataRequestProcessor.Instance().addMetadataToCache(item)
+      }
+    }
+  } catch (error) {
+    console.log(`Unable to load limarc data. proceeding...`)
+  }
+
+  console.log(process.env.REDIS_HOST, process.env.REDIS_PORT ? +process.env.REDIS_PORT : 6379, process.env.REDIS_PASSWORD)
+
+  if (process.env.REDIS_HOST) {
+    redisClient.connect(process.env.REDIS_HOST, process.env.REDIS_PORT ? +process.env.REDIS_PORT : 6379, process.env.REDIS_PASSWORD)
+    .catch(error => {
+      console.log(`index: error: redisClient.connect`, error)
+      console.log(`Continuing without redis...`)
+    })
+  } else {
+    console.log(`REDIS_HOST is undefined.`)
+    console.log(`Proceeding without redis...`)
+  }
+
+  // console.log(`RedisClient instantiated.`)
+  // try {
+    // redisClient.connect()
+    // console.log(`RedisClient connected.`)
+    // console.log(`RedisClient initializing...`)
+    // const defaultRedisData = await import("./lima/redis/defaultRedisData.json");
+    // await redisClient.initWithData(defaultRedisData, 'defaultRedisData.json')
+    // const limarcData = await jsonfile.readFile("./.limarc.json")
+    // await redisClient.initWithData(limarcData, '.limarc.json')
+    // console.log(`RedisClient initialized.`)
+  // } catch (error) {
+  //   console.log(`Error during RedisClient intialization.`, error)
+  //   console.log(`Proceeding....`)
+  // }
 
   const app = express()
 
   console.log(`LimaService: Looking for lima-app at path:`, process.env.LIMA_APP_PATH)
   // Set expected Content-Types
-  app.use(express.json())
   app.use(express.text())
+  app.use(express.json())
   app.use(express.static('public'));
   app.use(cookieParser());
 
@@ -64,6 +115,9 @@ const main = async () => {
   expressRouterWrapper.addPostHandler('/metadata', handlers.LimaHandlers.findMetadata, ['example:read'])
   expressRouterWrapper.addPostHandler('/transaction', handlers.LimaHandlers.processTransaction, ['example:read'])
   expressRouterWrapper.addPostHandler('/transactions', handlers.LimaHandlers.searchTransactionsWithCriteria, ['example:read'])
+  expressRouterWrapper.addPostHandler('/annotation', handlers.LimaHandlers.processAnnotation, ['example:read'])
+  expressRouterWrapper.addPostHandler('/annotations', handlers.LimaHandlers.searchAnnotationsWithCriteria, ['example:read'])
+
 
   // UTIL
   expressRouterWrapper.addGetHandler('/time', handlers.TimeHandler, ['example:read'])
@@ -90,7 +144,7 @@ const main = async () => {
   // const wss: WebSocketServer = setupWebSocketServer(httpServer, wssRoutes, serviceOptions)
 
   // socket-io routes
-  
+
   setupSocketIoDeviceServer(httpServer, '/socket-device/')
 
   process.on('SIGINT', () => {
