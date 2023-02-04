@@ -42,7 +42,7 @@ For an example customization of this template, see:
 `npm run start`
 
 
-### 
+### run as docker container
 
 `docker build -t lima-service .` 
 - or `npm run docker:build`
@@ -53,14 +53,14 @@ SERVER_PORT=8084
 USE_AUTH=true
 ```
 
-redis
+start redis
 
 ```
-docker run -p 6379:6379 -it --rm redislabs/redismod
+docker run -it --rm -p 6379:6379 redislabs/redismod
 
-docker run -p 6380:6380 -it --rm redislabs/redismod --port 6380
 ```
 
+start lima
 
 `docker run -it -v $(pwd)/.limarc.json:/usr/app/.limarc.json --rm -p 8084:8084 --env-file ./.env lima-service`
 - or `npm run docker:run`
