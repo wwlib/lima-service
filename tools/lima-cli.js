@@ -52,10 +52,11 @@ async function refreshAuth() {
 async function callLima(path, body, authData) {
     return new Promise((resolve, reject) => {
         const url = `${process.env.URL}/${path}`
+        const contentType = (typeof body === 'string') ? 'text/html' : 'application/json'
         axios.post(`${process.env.URL}/${path}`, body,
             {
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': contentType,
                     cookie: 'access_token=' + authData.access_token,
                 }
             })
@@ -83,6 +84,7 @@ async function callLima(path, body, authData) {
     })
 }
 
+let lastTransaction = undefined
 
 async function handleInput(input, authData) {
     let result = undefined
@@ -106,50 +108,82 @@ async function handleInput(input, authData) {
                 type: 'user',
                 serviceType: 'luis',
                 appName: 'luis/robo-dispatch',
-                userId: 'user-id',
+                accountId: 'accountId-1',
                 environment: 'environment',
             }, authData)
+            lastTransaction = result.response
             console.log(result)
             break;
         case 'gpt3':
             result = await callLima('transaction', {
                 clientId: 'client-id',
                 sessionId: 'session-id',
-                input: args[1] + '->' || 'do you like ice cream->',
+                input: args[1] ? args[1] + '->' : 'do you like ice cream->',
                 inputData: 'input-data',
                 type: 'user',
                 serviceType: 'gpt3text',
-                appName: 'gpt3text/jibo-chitchat-jan-2023',
-                userId: 'user-id',
+                appName: 'gpt3text/robo-chitchat-jan-2023',
+                accountId: 'accountId-2',
                 environment: 'environment',
             }, authData)
+            lastTransaction = result.response
             console.log(result)
             break;
         case 'transactions':
-            result = await callLima('transactions', { type: 'user' }, authData)
+            result = await callLima('transactions', { serviceType: 'gpt3text|luis' }, authData)
+            console.log(result)
+            break
+        case 'annotation':
+            console.log(lastTransaction)
+            if (lastTransaction) {
+                const annotation = {
+                    type: 'user',
+                    clientId: 'lima-cli',
+                    accountId: lastTransaction.id,
+                    sessionId: lastTransaction.sessionId,
+                    transactionId: lastTransaction.id,
+                    status: 'open',
+                    issueType: 'wrongAnswer',
+                    priority: 'high',
+                    assignedTo: 'tbd',
+                    // datestamp: undefined,
+                    intentId: 'tbd',
+                    deidentifiedInput: 'tbd',
+                    notes: 'notes',
+                    jiraIds: 'jira',
+                    appSpecificData: 'appSpecificData',
+                    revision: 0,
+                }
+                result = await callLima('annotation', annotation, authData)
+                console.log(result)
+            }
+            break;
+        case 'annotations':
+            result = await callLima('annotations', { criteriaString: '*' }, authData)
             console.log(result)
             break
     }
 }
 
-async function doIt() {
-    await refreshAuth()
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+})
+
+const ask = (prompt) => {
+    rl.question(prompt, async function (input) {
+        if (input === 'quit') {
+            process.exit(0)
+        } else {
+            await handleInput(input, authData)
+            ask("> ")
+        }
     })
+}
 
-    const ask = (prompt) => {
-        rl.question(prompt, async function (input) {
-            if (input === 'quit') {
-                process.exit(0)
-            } else {
-                await handleInput(input, authData)
-                ask("> ")
-            }
-        })
-    }
-
+async function main() {
+    await refreshAuth()
+    
     rl.on("close", function () {
         console.log("\nBYE BYE !!!")
         process.exit(0)
@@ -158,4 +192,21 @@ async function doIt() {
     ask("> ")
 }
 
-doIt()
+process.on('uncaughtException', function (exception) {
+    const errorTimestamp = new Date().toLocaleString()
+    console.error(`[${errorTimestamp}] uncaughtException:`, exception);
+    ask("> ")
+});
+
+process.on('unhandledRejection', (reason, p) => {
+    const errorTimestamp = new Date().toLocaleString()
+    console.error(`[${errorTimestamp}] unhandledRejection at: Promise`, p, " reason: ", reason);
+    ask("> ")
+});
+
+main().catch((error) => {
+    const errorTimestamp = new Date().toLocaleString()
+    console.error(`[${errorTimestamp}] Detected an unrecoverable error. Stopping!`)
+    console.error(error)
+    ask("> ")
+})

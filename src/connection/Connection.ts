@@ -1,6 +1,6 @@
 import { AuthRequest, QueryBody } from '@types';
 import { Socket } from 'socket.io';
-import TransactionProcessor from 'src/lima/TransactionProcessor';
+import { TransactionProcessor } from 'src/lima/TransactionProcessor';
 import { LimaCommand } from 'src/SocketIoDeviceServer';
 
 export enum ConnectionType {

@@ -1,5 +1,5 @@
-FROM node:16-stretch AS builder
-# node:16-stretch is required for mongodb/in-memory-mongodb (mongodb-memory-server)
+FROM node:16-alpine AS builder
+
 ARG BUILD_DIR="/usr/app"
 ARG CONTAINER_USER="node"
 ARG CONTAINER_EXPOSE_PORT="8084"
@@ -13,14 +13,13 @@ COPY --chown=${CONTAINER_USER} . .
 RUN npm install
 RUN npm run build
 
-# NOTE: Doing this forces MongoDB to download itself at runtime
 # keep going without src
-# FROM node:16-stretch
+FROM node:16-alpine
 
-# WORKDIR /usr/app
-# COPY --from=builder /usr/app/dist/ /usr/app/dist/
-# COPY --from=builder /usr/app/node_modules/ /usr/app/node_modules/
-# COPY --from=builder /usr/app/public/ /usr/app/public/
-# COPY --from=builder /usr/app/lima-app/ /usr/app/lima-app/
+WORKDIR /usr/app
+COPY --from=builder /usr/app/dist/ /usr/app/dist/
+COPY --from=builder /usr/app/node_modules/ /usr/app/node_modules/
+COPY --from=builder /usr/app/public/ /usr/app/public/
+COPY --from=builder /usr/app/lima-app/ /usr/app/lima-app/
 
 ENTRYPOINT ["node", "dist/index.js"]
