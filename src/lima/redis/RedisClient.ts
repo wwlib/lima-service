@@ -12,6 +12,9 @@ const jsonfile = require('jsonfile')
 
 export class RedisClient {
 
+  static TRANSACTION_ID_PREFIX = 'lima:trx:'
+  static ANNOTATION_ID_PREFIX = 'lima:anx:'
+
   private _graphName: string
 
   private _connected: boolean
@@ -222,15 +225,15 @@ export class RedisClient {
   // Transactions
 
   getNewTransactionId() {
-    return uuidv4()
+    return uuidv4().replaceAll('-', '')
   }
 
   getNewAnnotationId() {
-    return uuidv4()
+    return uuidv4().replaceAll('-', '')
   }
 
   getNewSessionId() {
-    return uuidv4()
+    return uuidv4().replaceAll('-', '')
   }
 
   async newTransactionWithDataAndSession(
@@ -245,22 +248,23 @@ export class RedisClient {
     transactionData.id = id
     transactionData.sessionId = sessionId || newSessionId
     transactionData.datestamp = Date.now()
-    await this.setJsonAsync(`lima:trx:${id}`, transactionData)
+    await this.setJsonAsync(`${RedisClient.TRANSACTION_ID_PREFIX}${id}`, transactionData)
     return transactionData
   }
 
   async getTransactionWithId(id: string): Promise<Transaction | null> {
-    return await this.getJsonAsync(`lima:trx:${id}`)
+    return await this.getJsonAsync(`${RedisClient.TRANSACTION_ID_PREFIX}${id}`)
   }
 
-  async searchTransactionsWithCriteria(criteria: string | TransactionCriteria): Promise<Transaction[]> {
+  async searchTransactionsWithCriteria(criteria: TransactionCriteria): Promise<Transaction[]> {
+    console.log(`searchTransactionsWithCriteria: criteria:`, criteria)
     if (!this._connected) {
       throw new Error('RedisClient: searchTransactionsWithCriteria: redis client is not connected.')
     }
     let result = []
     let criteriaString: string = ''
-    if (typeof criteria === 'string') {
-      criteriaString = criteria
+    if (criteria.criteriaString) {
+      criteriaString = criteria.criteriaString
     } else if (typeof criteria === 'object') {
       const criteriaKeys: string[] = Object.keys(criteria)
       criteriaKeys.forEach((key) => {
@@ -292,7 +296,7 @@ export class RedisClient {
     annotationData.sessionId = transaction.sessionId
     annotationData.datestamp = Date.now()
     annotationData.datestampModified = Date.now()
-    await this.setJsonAsync(`lima:anx:${id}`, annotationData)
+    await this.setJsonAsync(`${RedisClient.ANNOTATION_ID_PREFIX}${id}`, annotationData)
     return annotationData
   }
 
@@ -312,11 +316,11 @@ export class RedisClient {
     }
     annotationData.datestampModified = Date.now();
     annotationData.revision += 1
-    await this.setJsonAsync(`lima:anx:${annotationId}`, annotationData)
+    await this.setJsonAsync(`${RedisClient.ANNOTATION_ID_PREFIX}${annotationId}`, annotationData)
   }
 
   async getAnnotationWithId(id: string): Promise<Annotation | null> {
-    return await this.getJsonAsync(`lima:anx:${id}`)
+    return await this.getJsonAsync(`${RedisClient.ANNOTATION_ID_PREFIX}${id}`)
   }
 
   async searchAnnotationsWithCriteria(criteria: AnnotationCriteria): Promise<Annotation[]> {

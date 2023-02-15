@@ -54,6 +54,18 @@
                     "type": "TEXT",
                     "AS": "id"
                 },
+                "$.clientId": {
+                    "type": "TEXT",
+                    "AS": "clientId"
+                },
+                "$.input": {
+                    "type": "TEXT",
+                    "AS": "input"
+                },
+                "$.type": {
+                    "type": "TEXT",
+                    "AS": "type"
+                },
                 "$.sessionId": {
                     "type": "TEXT",
                     "AS": "sessionId"
@@ -62,9 +74,17 @@
                     "type": "TEXT",
                     "AS": "serviceType"
                 },
+                "$.appName": {
+                    "type": "TEXT",
+                    "AS": "appName"
+                },
                 "$.accountId": {
                     "type": "TEXT",
                     "AS": "accountId"
+                },
+                "$.environment": {
+                    "type": "TEXT",
+                    "AS": "environment"
                 }
             },
             "options": {

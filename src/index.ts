@@ -114,6 +114,7 @@ const main = async () => {
   expressRouterWrapper.addPostHandler('/users', handlers.LimaHandlers.findUsers, ['example:read'])
   expressRouterWrapper.addPostHandler('/metadata', handlers.LimaHandlers.findMetadata, ['example:read'])
   expressRouterWrapper.addPostHandler('/transaction', handlers.LimaHandlers.processTransaction, ['example:read'])
+  expressRouterWrapper.addPostHandler('/transactionLog', handlers.LimaHandlers.processTransactionLog, ['example:read'])
   expressRouterWrapper.addPostHandler('/transactions', handlers.LimaHandlers.searchTransactionsWithCriteria, ['example:read'])
   expressRouterWrapper.addPostHandler('/annotation', handlers.LimaHandlers.processAnnotation, ['example:read'])
   expressRouterWrapper.addPostHandler('/annotations', handlers.LimaHandlers.searchAnnotationsWithCriteria, ['example:read'])

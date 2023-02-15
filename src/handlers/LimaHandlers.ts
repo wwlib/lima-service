@@ -60,6 +60,23 @@ export class LimaHandlers {
     res.status(StatusCodes.OK).json(result)
   }
 
+  static processTransactionLog: Handler = async (req: AuthRequest, res: Response) => {
+    let accountId = '';
+    if (req.auth && req.auth.accessTokenPayload) {
+      accountId = req.auth.accessTokenPayload.accountId
+    }
+    console.log('LimaHandlers: processTransactionLog: req.body:', req.body)
+    let response: any = {}
+    let result: any = { status: 'OK', accountId, response }
+    try {
+      response = await TransactionProcessor.Instance().processTransactionLog(req.body)
+      result.response = response
+    } catch (error) {
+      result = { status: 'NOK', accountId, error: `LimaHandlers: processTransactionLog: ${error}.` }
+    }
+    res.status(StatusCodes.OK).json(result)
+  }
+
   static searchTransactionsWithCriteria: Handler = async (req: AuthRequest, res: Response) => {
     let accountId = '';
     if (req.auth && req.auth.accessTokenPayload) {

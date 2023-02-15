@@ -1,6 +1,7 @@
 const dotenv = require('dotenv')
 const readline = require("readline")
 const axios = require('axios')
+const prettyjson = require('prettyjson');
 
 dotenv.config()
 
@@ -101,14 +102,14 @@ async function handleInput(input, authData) {
             break
         case 'luis':
             result = await callLima('transaction', {
-                clientId: 'client-id',
-                sessionId: 'session-id',
+                clientId: 'client.id',
+                sessionId: 'session.id',
                 input: args[1] || 'i would like to play a game',
-                inputData: 'input-data',
+                inputData: 'input.data',
                 type: 'user',
                 serviceType: 'luis',
-                appName: 'luis/robo-dispatch',
-                accountId: 'accountId-1',
+                appName: 'luis/roboDispatch',
+                accountId: 'accountId.1',
                 environment: 'environment',
             }, authData)
             lastTransaction = result.response
@@ -116,29 +117,44 @@ async function handleInput(input, authData) {
             break;
         case 'gpt3':
             result = await callLima('transaction', {
-                clientId: 'client-id',
-                sessionId: 'session-id',
+                clientId: 'client.id',
+                sessionId: 'session.id',
                 input: args[1] ? args[1] + '->' : 'do you like ice cream->',
-                inputData: 'input-data',
+                inputData: 'input+data',
                 type: 'user',
                 serviceType: 'gpt3text',
-                appName: 'gpt3text/robo-chitchat-jan-2023',
-                accountId: 'accountId-2',
+                appName: 'gpt3text/roboChitchatJan2023',
+                accountId: 'accountId.2',
                 environment: 'environment',
             }, authData)
             lastTransaction = result.response
             console.log(result)
             break;
-        case 'transactions':
-            result = await callLima('transactions', { serviceType: 'gpt3text|luis' }, authData)
+        case 'log':
+            result = await callLima('transactionLog', {
+                clientId: 'external',
+                sessionId: 'externalId',
+                input: 'i.e. GPT3 Prompt',
+                inputData: {},
+                type: 'user',
+                serviceType: 'gpt3text',
+                appName: 'text-davinci-003',
+                accountId: 'externalAccount',
+                environment: 'dev',
+            }, authData)
+            lastTransaction = result.response
             console.log(result)
+            break;
+        case 'transactions':
+            result = await callLima('transactions', { criteriaString: '*' }, authData) // { id: '5a6b534b63f84dfeaabf80f58e6bdfad' }, authData) //   { serviceType: 'gpt3text|luis' }, authData)
+            console.log(prettyjson.render(result));
             break
         case 'annotation':
             console.log(lastTransaction)
             if (lastTransaction) {
                 const annotation = {
                     type: 'user',
-                    clientId: 'lima-cli',
+                    clientId: 'limaCli',
                     accountId: lastTransaction.id,
                     sessionId: lastTransaction.sessionId,
                     transactionId: lastTransaction.id,
@@ -172,7 +188,7 @@ const rl = readline.createInterface({
 
 const ask = (prompt) => {
     rl.question(prompt, async function (input) {
-        if (input === 'quit') {
+        if (input === 'quit' || input === 'q') {
             process.exit(0)
         } else {
             await handleInput(input, authData)
@@ -183,7 +199,7 @@ const ask = (prompt) => {
 
 async function main() {
     await refreshAuth()
-    
+
     rl.on("close", function () {
         console.log("\nBYE BYE !!!")
         process.exit(0)

@@ -12,6 +12,7 @@ export enum AccountType {
   User = "user",
   QA = "qa",
   Auto = "auto",
+  NA = "na",
 }
 
 export enum IssueType {
@@ -35,6 +36,7 @@ export enum AnnotationStatus {
 export enum Environment {
   Test = "test",
   Production = "production",
+  NA = 'na'
 }
 
 export enum ServiceType {
@@ -109,6 +111,7 @@ export type TransactionCriteria = {
   sessionId: string
   serviceType: string
   accountId: string
+  criteriaString: string
 }
 
 export type AnnotationCriteria = {

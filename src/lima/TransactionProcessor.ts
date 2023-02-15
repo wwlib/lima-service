@@ -292,7 +292,27 @@ export class TransactionProcessor {
 
   async process(body: QueryBody, req: AuthRequest): Promise<Transaction> {
     let sessionId: string | undefined = undefined;
-    let nluResult: any = {}
+    let nluResult: Transaction = {
+      id: 'na',
+      type: body.type || AccountType.NA,
+      clientId: body.clientId,
+      limaVersion: LIMA_VERSION,
+      serviceType: ServiceType.NA,
+      appName: body.appName,
+      appVersion: 'na',
+      accountId: body.accountId,
+      sessionId: 'na',
+      environment: body.environment || Environment.NA,
+      input: body.input,
+      inputData: body.inputData,
+      intentId: 'na',
+      intentDetail: 'na',
+      confidence: 1.0,
+      category: 'na',
+      response: { status: `unprocessed` },
+      responseTime: 0,
+      entities: {},
+    }
     let result: Transaction | undefined = undefined;
 
     const appData: Metadata | undefined = await MetadataRequestProcessor.Instance().getCachedMetadataWithAppName(body.appName!);
@@ -302,7 +322,7 @@ export class TransactionProcessor {
 
       return {
         id: '',
-        type: body.type || AccountType.User,
+        type: body.type || AccountType.NA,
         clientId: body.clientId,
         limaVersion: LIMA_VERSION,
         serviceType: ServiceType.NA,
@@ -310,14 +330,14 @@ export class TransactionProcessor {
         appVersion: '',
         accountId: body.accountId,
         sessionId: '',
-        environment: body.environment || Environment.Production,
+        environment: body.environment || Environment.NA,
         input: body.input,
         inputData: body.inputData,
         intentId: '',
         intentDetail: '',
         confidence: 1.0,
         category: '',
-        response: { error: `Cannot find metadata for appname: ${body.appName}` },
+        response: { status: `unprocessed`, error: `Cannot find metadata for appname: ${body.appName}` },
         responseTime: 0,
         entities: {},
       };
@@ -384,5 +404,44 @@ export class TransactionProcessor {
       throw new Error(`TransactionProcessor: api call failed. unable to process transaction.`);
     }
     return result;
+  }
+
+  // send an externally-processed transaction log to redis - i.e. nlu has already been processed
+  async processTransactionLog(body: Transaction): Promise<Transaction> {
+    let nluResult: Transaction = {
+      id: body.id || 'na',
+      type: body.type || AccountType.NA,
+      clientId: body.clientId || 'na',
+      limaVersion: LIMA_VERSION,
+      serviceType: body.serviceType || ServiceType.NA,
+      appName: body.appName || 'na',
+      appVersion: body.appVersion || 'na',
+      accountId: body.accountId || 'na',
+      sessionId: body.sessionId || 'na',
+      environment: body.environment || Environment.NA,
+      input: body.input || '',
+      inputData: body.inputData || {},
+      intentId: body.intentId || 'na',
+      intentDetail: body.intentDetail || 'na',
+      confidence: body.confidence || undefined,
+      category: body.category || 'na',
+      response: body.response || { status: `na` },
+      responseTime: body.responseTime || undefined,
+      entities: body.entities || {},
+    }
+    let sessionId: string = body.sessionId;
+    let result: Transaction = nluResult;
+
+    if (this._redisClient) {
+      try {
+        if (!sessionId) {
+          sessionId = await this._redisClient.getNewSessionId();
+        }
+        result = await this._redisClient.newTransactionWithDataAndSession(nluResult as any, sessionId!);
+      } catch (error) {
+        console.log(`TransactionProcessor: ignoring redisClient error:`, error)
+      }
+    }
+    return result
   }
 }
