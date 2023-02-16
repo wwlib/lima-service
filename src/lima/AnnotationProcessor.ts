@@ -16,29 +16,39 @@ export class AnnotationProcessor {
     this._redisClient = redisClient
   }
 
-  async process(body: CreateAnnotation | UpdateAnnotation, req: AuthRequest): Promise<Annotation> {
+  async process(body: Annotation, req: AuthRequest): Promise<Annotation> {
     if (!this._redisClient) {
       throw new Error('AnnotationProcessor: error: redisClient is undefined.')
     }
     if ("id" in body) {
       // presence of annotation id indicates an UPDATE rather than a CREATE
       const data: Annotation = {
+        type: body.type,
+        clientId: body.clientId,
+        appName: body.appName,
+        serviceType: body.serviceType,
+        accountId: body.accountId,
+        sessionId: body.sessionId,
+        transactionId: body.transactionId,
         status: body.status,
         issueType: body.issueType,
         priority: body.priority,
         assignedTo: body.assignedTo,
         intentId: body.intentId,
+        category: body.category,
         deidentifiedInput: body.deidentifiedInput,
         notes: body.notes,
         jiraIds: body.jiraIds,
         appSpecificData: body.appSpecificData,
+        datestamp: body.datestamp,
+        datestampModified: Date.now(),
         revision: body.revision,
       };
 
-      await this._redisClient.updateAnnotationWithDataAndAnotationId(data, body.id);
-      return (await this._redisClient.getAnnotationWithId(body.id)) as Annotation;
+      await this._redisClient.updateAnnotationWithDataAndAnotationId(data, body.id!);
+      return (await this._redisClient.getAnnotationWithId(body.id!)) as Annotation;
     } else {
-      const transaction = await this._redisClient.getTransactionWithId(body.transactionId);
+      const transaction = await this._redisClient.getTransactionWithId(body.transactionId!);
       const auth = req.auth
       if (transaction) {
         const data = {
@@ -54,10 +64,13 @@ export class AnnotationProcessor {
           priority: body.priority,
           assignedTo: body.assignedTo,
           intentId: body.intentId,
+          category: body.category,
           deidentifiedInput: body.deidentifiedInput,
           notes: body.notes,
           jiraIds: body.jiraIds,
           appSpecificData: body.appSpecificData,
+          datestamp: Date.now(),
+          datestampModified: Date.now(),
           revision: 0,
         };
 

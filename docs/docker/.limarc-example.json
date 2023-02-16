@@ -16,8 +16,8 @@
             "isDefault": true
         },
         {
-            "key": "lima:metadata:gpt3text/robo-chitchat-jan-2023",
-            "appName": "gpt3text/robo-chitchat-jan-2023",
+            "key": "lima:metadata:gpt3text/roboChitchatJan2023",
+            "appName": "gpt3text/roboChitchatJan2023",
             "appId": "",
             "appVersion": "0.1",
             "serviceType": "gpt3text",

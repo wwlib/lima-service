@@ -257,7 +257,7 @@ export class RedisClient {
   }
 
   async searchTransactionsWithCriteria(criteria: TransactionCriteria): Promise<Transaction[]> {
-    console.log(`searchTransactionsWithCriteria: criteria:`, criteria)
+    console.log(`RedisClient: searchTransactionsWithCriteria: criteria:`, criteria)
     if (!this._connected) {
       throw new Error('RedisClient: searchTransactionsWithCriteria: redis client is not connected.')
     }
@@ -265,7 +265,7 @@ export class RedisClient {
     let criteriaString: string = ''
     if (criteria.criteriaString) {
       criteriaString = criteria.criteriaString
-    } else if (typeof criteria === 'object') {
+    } else if (typeof criteria === 'object' && Object.keys(criteria).length > 0) {
       const criteriaKeys: string[] = Object.keys(criteria)
       criteriaKeys.forEach((key) => {
         criteriaString += `@${key}:'${criteria[key as keyof TransactionCriteria]}' `
@@ -301,7 +301,7 @@ export class RedisClient {
   }
 
   async updateAnnotationWithDataAndAnotationId(
-    annotationData: Partial<Annotation>,
+    annotationData: Annotation,
     annotationId: string,
   ) {
     if (!this._connected) {
@@ -314,9 +314,20 @@ export class RedisClient {
     if (annotationData.revision != annotation.revision) {
       throw new Error("Revision mismatch. AnnotationData is out of sync. Update aborted.");
     }
-    annotationData.datestampModified = Date.now();
-    annotationData.revision += 1
-    await this.setJsonAsync(`${RedisClient.ANNOTATION_ID_PREFIX}${annotationId}`, annotationData)
+    let updatedData: any = {}
+    Object.assign(updatedData, annotation)
+    const keysToUpdate = Object.keys(annotationData)
+    const keysToSkip = ['id', 'transactionId', 'accountId', 'sessionId', 'serviceType', 'appName', 'clientId', 'type', 'revision', 'datestamp', 'datestampModified']
+    
+    keysToUpdate.forEach(key => {
+      if (!(key in keysToSkip)) {
+        const annotationKey = key as keyof Annotation
+        updatedData[key] = annotationData[annotationKey]
+      }
+    })
+    updatedData.datestampModified = Date.now();
+    updatedData.revision = annotation.revision + 1
+    await this.setJsonAsync(`${RedisClient.ANNOTATION_ID_PREFIX}${annotationId}`, updatedData)
   }
 
   async getAnnotationWithId(id: string): Promise<Annotation | null> {
@@ -331,11 +342,13 @@ export class RedisClient {
     let criteriaString: string = ''
     if (criteria.criteriaString) {
       criteriaString = criteria.criteriaString
-    } else {
+    } else if (typeof criteria === 'object' && Object.keys(criteria).length > 0) {
       const criteriaKeys: string[] = Object.keys(criteria)
       criteriaKeys.forEach((key) => {
-        criteriaString += `@${key}:'${criteria[key as keyof AnnotationCriteria]}' `
+        criteriaString += `@${key}:'${criteria[key as keyof TransactionCriteria]}' `
       })
+    } else {
+      criteriaString = '*' // TODO: is this a good default?
     }
     console.log(`RedisClient: searchAnnotationsWithCriteria: criteriaString:`, criteriaString)
     try {

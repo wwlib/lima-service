@@ -107,6 +107,7 @@ export class LimaHandlers {
     let result: any = { status: 'OK', accountId, response }
     try {
       response = await AnnotationProcessor.Instance().process(req.body, req)
+      console.log('LimaHandlers: processAnnotation: response:', response)
       result.response = response
     } catch (error) {
       result = { status: 'NOK', accountId, error: `LimaHandlers: processAnnotation: ${error}.` }

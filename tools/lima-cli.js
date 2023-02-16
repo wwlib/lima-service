@@ -176,7 +176,7 @@ async function handleInput(input, authData) {
             break;
         case 'annotations':
             result = await callLima('annotations', { criteriaString: '*' }, authData)
-            console.log(result)
+            console.log(prettyjson.render(result));
             break
     }
 }
