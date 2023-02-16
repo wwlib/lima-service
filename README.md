@@ -35,7 +35,21 @@ For an example customization of this template, see:
 
 ### build
 
-`npm run build`
+The lima-app repo (https://github.com/wwlib/lima-app) should be checked out as a peer of lima-service. In lima-app:
+
+```
+cd lima-app
+yarn
+yarn build
+```
+
+Then in lima-service
+
+```
+cd lima-service
+npm run copy-lima-app
+npm run build
+```
 
 ### run
 
