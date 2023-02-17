@@ -70,12 +70,13 @@ export class RedisClient {
     this._client = createClient(clientOptions)
       .on('connect', () => {
         console.log('RedisClient: connect')
-        this._connected = true
+        // this._connected = true
         this._errorCount = 0
         this._reconnectAttempts = 0
       })
       .on('ready', () => {
         console.log('RedisClient: ready')
+        this._connected = true
         this.checkForBootstrapData()
           .then((result: any) => {
             console.log(`initialized successfully:`, result)
@@ -93,6 +94,7 @@ export class RedisClient {
         this._connected = false
       })
       .on('reconnecting', () => {
+        this._connected = false
         this._reconnectAttempts++
         console.log(`RedisClient: reconnecting: _reconnectAttempts: ${this._reconnectAttempts}`)
       })

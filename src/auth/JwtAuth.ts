@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 export interface AuthResult {
     access_token: string
     refresh_token: string
-    user_id: string
+    account_id: string
 }
 
 export const ACCESS_TOKEN_NAME = 'access_token'
@@ -35,7 +35,7 @@ export class JwtAuth {
                             reject(err)
                         } else {
 
-                            resolve({ access_token: accessToken, refresh_token: refreshToken, user_id: accessTokenPayload.accountId })
+                            resolve({ access_token: accessToken, refresh_token: refreshToken, account_id: accessTokenPayload.accountId })
                         }
                     })
                 }
@@ -51,7 +51,7 @@ export class JwtAuth {
                 if (err) {
                     reject(err)
                 } else {
-                    resolve({ access_token: accessToken, user_id: accessTokenPayload.accountId })
+                    resolve({ access_token: accessToken, account_id: accessTokenPayload.accountId })
                 }
             })
         })
