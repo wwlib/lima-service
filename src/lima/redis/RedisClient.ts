@@ -241,16 +241,17 @@ export class RedisClient {
   async newTransactionWithDataAndSession(
     transactionData: Transaction,
     sessionId: string,
+    overWriteId: boolean = true,
   ): Promise<Transaction> {
     if (!this._connected) {
       throw new Error('RedisClient: newTransactionWithDataAndSession: redis client is not connected.')
     }
-    const id = this.getNewTransactionId()
+    const newId = this.getNewTransactionId()
     const newSessionId = this.getNewSessionId()
-    transactionData.id = id
+    transactionData.id = overWriteId ? newId : transactionData.id ? transactionData.id : newId
     transactionData.sessionId = sessionId || newSessionId
     transactionData.datestamp = Date.now()
-    await this.setJsonAsync(`${RedisClient.TRANSACTION_ID_PREFIX}${id}`, transactionData)
+    await this.setJsonAsync(`${RedisClient.TRANSACTION_ID_PREFIX}${transactionData.id}`, transactionData)
     return transactionData
   }
 
@@ -277,7 +278,7 @@ export class RedisClient {
     }
     console.log(`RedisClient: searchTransactionsWithCriteria: criteriaString:`, criteriaString)
     try {
-      result = await this._client.ft.search('lima:idx:trx', criteriaString)
+      result = await this._client.ft.search('lima:idx:trx', criteriaString, { LIMIT: { from: 0, size: 100 } })
       return result.documents
     } catch (error) {
       throw error

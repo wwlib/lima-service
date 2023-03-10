@@ -67,10 +67,10 @@ export class LimaHandlers {
     }
     console.log('LimaHandlers: processTransactionLog: req.body:', req.body)
     let response: any = {}
-    let result: any = { status: 'OK', accountId, response }
+    let result: any = { status: 'OK', accountId }
     try {
       response = await TransactionProcessor.Instance().processTransactionLog(req.body)
-      result.response = response
+      result.transactionId = response.id
     } catch (error) {
       result = { status: 'NOK', accountId, error: `LimaHandlers: processTransactionLog: ${error}.` }
     }

@@ -437,7 +437,7 @@ export class TransactionProcessor {
         if (!sessionId) {
           sessionId = await this._redisClient.getNewSessionId();
         }
-        result = await this._redisClient.newTransactionWithDataAndSession(nluResult as any, sessionId!);
+        result = await this._redisClient.newTransactionWithDataAndSession(nluResult as any, sessionId!, false);
       } catch (error) {
         console.log(`TransactionProcessor: ignoring redisClient error:`, error)
       }
